@@ -8,6 +8,7 @@ const LODS := [
 	"res://art/models/production/asset_02_floating_island/game_ready/LOD2.glb",
 ]
 const EMISSIVE := "res://art/models/production/asset_02_floating_island/texture_emissive.png"
+const AO_PROXY := "res://art/models/production/asset_02_floating_island/texture_ao_proxy.png"
 
 
 func _init() -> void:
@@ -19,6 +20,7 @@ func _run() -> void:
 	for path in LODS:
 		assert(FileAccess.file_exists(path), "Missing game-ready LOD: " + path)
 	assert(FileAccess.file_exists(EMISSIVE), "Missing emissive texture: " + EMISSIVE)
+	assert(FileAccess.file_exists(AO_PROXY), "Missing AO proxy texture: " + AO_PROXY)
 	var ProductionAsset = load("res://scripts/environment/production_asset.gd")
 	var island = ProductionAsset.new()
 	island.configure_floating_island(12.8, 1.45, 2)

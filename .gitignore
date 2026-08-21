@@ -5,4 +5,9 @@ config/backend.json
 .env
 *.keystore
 *.jks
+node_modules/
 
+# Extracted GLB source maps (regenerate via gltf-transform copy LOD0.glb)
+art/models/production/asset_02_floating_island/source_maps/*.png
+art/models/production/asset_02_floating_island/source_maps/*.bin
+art/models/production/asset_02_floating_island/source_maps/*.gltf

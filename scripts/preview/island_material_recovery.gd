@@ -84,6 +84,8 @@ func _describe_material(owner_name: String, surface_idx: int, material: Material
 			entry.maps.append("metallic_roughness")
 		if std.emission_texture:
 			entry.maps.append("emission:%sx%s" % [std.emission_texture.get_width(), std.emission_texture.get_height()])
+		if std.ao_texture:
+			entry.maps.append("ao:%sx%s" % [std.ao_texture.get_width(), std.ao_texture.get_height()])
 		entry.emission_energy = std.emission_energy_multiplier
 		entry["albedo_color"] = std.albedo_color
 		entry["roughness"] = std.roughness
@@ -139,6 +141,11 @@ func _verify_surface(surface: Dictionary) -> Array[Dictionary]:
 		and surface.get("emission_energy", 0.0) == EXPECTED_EMISSION_ENERGY
 		and _color_near(surface.get("emission", Color.BLACK), EXPECTED_EMISSION_TINT),
 		"energy=%s emission=%s" % [surface.get("emission_energy", 0.0), surface.get("emission", Color.BLACK)]
+	))
+	checks.append(_check(
+		"%s ao proxy active" % prefix,
+		_has_map_size(surface, "ao:", EXPECTED_MAP_SIZE),
+		map_text
 	))
 	checks.append(_check(
 		"%s albedo tint neutral" % prefix,

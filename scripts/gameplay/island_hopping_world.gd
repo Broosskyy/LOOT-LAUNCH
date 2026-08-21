@@ -306,10 +306,19 @@ func _build_environment() -> void:
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("c9d4ff") if expedition_key == "crystal_forge" else Color("c5eaff")
-	environment.ambient_light_energy = 0.60
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.glow_enabled = quality_level >= 1
-	environment.glow_intensity = 0.42 if quality_level == 1 else 0.52
+	if _uses_production_material_lighting():
+		environment.ambient_light_energy = 0.36
+		environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+		environment.tonemap_exposure = 0.88
+		environment.glow_enabled = true
+		environment.glow_intensity = 0.08
+		environment.glow_bloom = 0.04
+		environment.glow_hdr_threshold = 1.25
+	else:
+		environment.ambient_light_energy = 0.60
+		environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+		environment.glow_enabled = quality_level >= 1
+		environment.glow_intensity = 0.42 if quality_level == 1 else 0.52
 	if quality_level >= 2:
 		environment.fog_enabled = true
 		environment.fog_light_color = Color("c9ddf5")
@@ -329,7 +338,7 @@ func _build_environment() -> void:
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
 	sun.light_color = Color("e5dcff") if expedition_key == "crystal_forge" else Color("fff0d0")
-	sun.light_energy = 0.94
+	sun.light_energy = 0.62 if _uses_production_material_lighting() else 0.94
 	sun.shadow_enabled = quality_level >= 1
 	sun.directional_shadow_max_distance = 46.0
 	add_child(sun)
@@ -482,6 +491,10 @@ func _uses_production_island_visual(island_index: int) -> bool:
 	return island_index == 0 and USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten"
 
 
+func _uses_production_material_lighting() -> bool:
+	return USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten"
+
+
 func _add_production_island_visual(root: Node3D, radius: float, thickness: float) -> void:
 	var visual = ProductionAsset.new()
 	visual.name = "ProductionIslandVisual"
@@ -627,6 +640,9 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 	root.position = center
 	root.name = "TargetIslandDecor" if target_side else "SourceIslandDecor"
 	add_child(root)
+	if _uses_production_island_visual(island_index):
+		_decorate_production_island_lite(root, island_index)
+		return
 	# Tall silhouettes frame the island at the sides instead of obscuring the
 	# centre line used by the cannon and its camera.
 	var spread: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)]) * 0.46
@@ -668,6 +684,15 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 	_mesh(root, pad_ring, mats.brass, Vector3(0, 0.18, -1.2), Vector3.ONE, Vector3(90, 0, 0))
 
 
+func _decorate_production_island_lite(root: Node3D, island_index: int) -> void:
+	# Keep gameplay-readable framing without duplicating authored mesh surfaces.
+	var spread: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)]) * 0.46
+	for pos in [Vector3(-spread, 0.0, 0.2), Vector3(spread, 0.0, 1.8)]:
+		_add_tree(root, pos, 0.9 + random.randf_range(-0.08, 0.12))
+	for x in [-2.05, 2.05]:
+		_add_aether_lantern(root, Vector3(x, 0.0, -0.3), 0.78)
+
+
 func _add_biome_landmark(center: Vector3, island_index: int) -> void:
 	var root := Node3D.new()
 	root.name = "BiomeLandmark%02d" % (island_index + 1)
@@ -678,8 +703,11 @@ func _add_biome_landmark(center: Vector3, island_index: int) -> void:
 		return
 	match island_index:
 		0:
-			_add_windmill(root, Vector3(-6.8, 0.0, 4.0), 0.92)
-			_add_banner(root, Vector3(6.6, 0.0, 3.4), Color("7651e8"))
+			if _uses_production_island_visual(0):
+				_add_banner(root, Vector3(6.6, 0.0, 3.4), Color("7651e8"))
+			else:
+				_add_windmill(root, Vector3(-6.8, 0.0, 4.0), 0.92)
+				_add_banner(root, Vector3(6.6, 0.0, 3.4), Color("7651e8"))
 		1:
 			_add_mushroom_grove(root, Vector3(5.8, 0.0, 4.0))
 			_add_small_bridge(root, Vector3(-4.8, 0.0, 4.5))

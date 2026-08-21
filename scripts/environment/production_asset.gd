@@ -16,7 +16,9 @@ const ISLAND_EMISSION_TINT := Color(0.58, 0.46, 0.92)
 @export var lod1_path: String = ""
 @export var lod2_path: String = ""
 @export var emission_texture_path: String = ""
+@export var ao_texture_path: String = ""
 @export_range(0.0, 2.0) var emission_energy: float = 0.42
+@export_range(0.0, 1.0) var ao_light_affect: float = 0.72
 @export var visual_scale: float = 1.0
 @export var enable_gameplay_collision: bool = false
 @export var gameplay_radius: float = 11.648
@@ -56,6 +58,7 @@ func configure_floating_island(source_radius: float, thickness: float, quality :
 	lod1_path = "res://art/models/production/asset_02_floating_island/game_ready/LOD1.glb"
 	lod2_path = "res://art/models/production/asset_02_floating_island/game_ready/LOD2.glb"
 	emission_texture_path = "res://art/models/production/asset_02_floating_island/texture_emissive.png"
+	ao_texture_path = "res://art/models/production/asset_02_floating_island/texture_ao_proxy.png"
 	emission_energy = 0.16
 	visual_scale = gameplay_scale_for_radius(source_radius)
 	gameplay_radius = gameplay_radius_for_source(source_radius)
@@ -203,9 +206,21 @@ func _enhance_imported_materials(node: Node) -> void:
 					tuned.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 					if tuned.normal_texture:
 						tuned.normal_enabled = true
+					_apply_optional_ao(tuned)
 					mesh_instance.set_surface_override_material(surface_idx, tuned)
 	for child in node.get_children():
 		_enhance_imported_materials(child)
+
+
+func _apply_optional_ao(material: StandardMaterial3D) -> void:
+	if ao_texture_path.is_empty() or not ResourceLoader.exists(ao_texture_path):
+		return
+	var ao_texture: Texture2D = load(ao_texture_path) as Texture2D
+	if ao_texture == null:
+		return
+	material.ao_enabled = true
+	material.ao_texture = ao_texture
+	material.ao_light_affect = ao_light_affect
 
 
 func _enforce_opaque_materials(node: Node) -> void:
