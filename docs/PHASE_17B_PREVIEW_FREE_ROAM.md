@@ -10,9 +10,11 @@ Preview-only inspection controller for the active **Floating Island production a
 
 ## Joystick component
 
-Reuses the existing Loot Launch analog stick:
+Reuses the existing Loot Launch analog stick via script preload:
 
-`res://scripts/ui/virtual_joystick.gd`
+`VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")`
+
+(Godot 4.7 exposes a native `VirtualJoystick` symbol — the preview avoids shadowing it by using a uniquely named preload.)
 
 - No gameplay dependencies (standalone `Control` + `vector_changed` signal)
 - Portrait size in preview: **560 × 475 px**, lower-left of the move zone

@@ -2,16 +2,17 @@ extends Node3D
 
 ## Phase 17B production preview — floating island inspection with free-roam fly camera.
 
-const ProductionAsset = preload("res://scripts/environment/production_asset.gd")
-const VirtualJoystick = preload("res://scripts/ui/virtual_joystick.gd")
+const ProductionAssetScript = preload("res://scripts/environment/production_asset.gd")
+const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const CAMERA_PADDING := 1.35
-const VIEW_DIRECTION := Vector3(0.55, 0.38, 0.74).normalized()
-const PITCH_MIN := deg_to_rad(-85.0)
-const PITCH_MAX := deg_to_rad(85.0)
+const PITCH_MIN_RAD := -1.483529864195791
+const PITCH_MAX_RAD := 1.483529864195791
 const JOYSTICK_SIZE := Vector2(560.0, 475.0)
 
+var _view_direction: Vector3 = Vector3(0.55, 0.38, 0.74).normalized()
+
 var camera: Camera3D
-var island_wrapper: ProductionAsset
+var island_wrapper: Node3D
 var debug_marker: MeshInstance3D
 var reference_floor: MeshInstance3D
 var inspection_ui: CanvasLayer
@@ -131,7 +132,7 @@ func _build_floor() -> void:
 
 
 func _build_inspection_ui() -> void:
-	inspection_ui = $InspectionUI
+	inspection_ui = $InspectionUI as CanvasLayer
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	var left_zone := _make_screen_zone(
 		"MoveZone",
@@ -139,7 +140,7 @@ func _build_inspection_ui() -> void:
 		Vector2(viewport_size.x * 0.5, viewport_size.y)
 	)
 	inspection_ui.add_child(left_zone)
-	move_joystick = VirtualJoystick.new()
+	move_joystick = VirtualJoystickScript.new() as Control
 	move_joystick.name = "MoveJoystick"
 	move_joystick.size = JOYSTICK_SIZE
 	move_joystick.position = Vector2(
@@ -189,7 +190,7 @@ func _make_tool_button(label: String, callback: Callable) -> Button:
 
 
 func _build_island() -> void:
-	island_wrapper = ProductionAsset.new()
+	island_wrapper = ProductionAssetScript.new()
 	island_wrapper.name = "FloatingIslandProduction"
 	island_wrapper.configure_floating_island(12.8, 1.45, 2)
 	add_child(island_wrapper)
@@ -208,10 +209,10 @@ func _apply_framing_camera() -> void:
 	var fov_rad: float = deg_to_rad(camera.fov)
 	var distance: float = (bounding_radius / tan(fov_rad * 0.5)) * CAMERA_PADDING * 1.15
 	var expanded_bounds: AABB = _last_world_bounds.grow(0.75)
-	var camera_position: Vector3 = _framing_center + VIEW_DIRECTION * distance
+	var camera_position: Vector3 = _framing_center + _view_direction * distance
 	while expanded_bounds.has_point(camera_position):
 		distance *= 1.15
-		camera_position = _framing_center + VIEW_DIRECTION * distance
+		camera_position = _framing_center + _view_direction * distance
 	camera.global_position = camera_position
 	camera.look_at(_framing_center, Vector3.UP)
 	_store_framing_state()
@@ -239,7 +240,7 @@ func _apply_free_movement(delta: float) -> void:
 	if planar.length() > 1.0:
 		planar = planar.normalized()
 	var basis: Basis = camera.global_basis
-	var move_direction := Vector3.ZERO
+	var move_direction: Vector3 = Vector3.ZERO
 	move_direction += basis.x * planar.x
 	move_direction += basis.z * planar.y
 	move_direction.y += _keyboard_vertical
@@ -268,7 +269,7 @@ func _read_keyboard_input() -> void:
 func _apply_look_delta(delta: Vector2) -> void:
 	_camera_yaw -= delta.x * _look_sensitivity
 	_camera_pitch -= delta.y * _look_sensitivity
-	_camera_pitch = clampf(_camera_pitch, PITCH_MIN, PITCH_MAX)
+	_camera_pitch = clampf(_camera_pitch, PITCH_MIN_RAD, PITCH_MAX_RAD)
 
 
 func _on_joystick_vector_changed(value: Vector2) -> void:
@@ -282,21 +283,25 @@ func _on_look_zone_gui_input(event: InputEvent) -> void:
 	var release := false
 	var motion := false
 	if event is InputEventScreenTouch:
-		pos = event.position
-		pointer = event.index
-		press = event.pressed
-		release = not event.pressed
+		var touch_event := event as InputEventScreenTouch
+		pos = touch_event.position
+		pointer = touch_event.index
+		press = touch_event.pressed
+		release = not touch_event.pressed
 	elif event is InputEventScreenDrag:
-		pos = event.position
-		pointer = event.index
+		var drag_event := event as InputEventScreenDrag
+		pos = drag_event.position
+		pointer = drag_event.index
 		motion = true
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		pos = event.position
+		var mouse_event := event as InputEventMouseButton
+		pos = mouse_event.position
 		pointer = -1
-		press = event.pressed
-		release = not event.pressed
+		press = mouse_event.pressed
+		release = not mouse_event.pressed
 	elif event is InputEventMouseMotion and _mouse_look_active:
-		_apply_look_delta(event.relative)
+		var motion_event := event as InputEventMouseMotion
+		_apply_look_delta(motion_event.relative)
 		look_zone.accept_event()
 		return
 	else:
@@ -349,8 +354,9 @@ func _on_zoom_out_pressed() -> void:
 	_pinch_base_fov = camera.fov
 
 
-func _compute_world_visual_bounds(root: ProductionAsset) -> AABB:
-	var search_root: Node = root.visual_root if root.visual_root else root
+func _compute_world_visual_bounds(root: Node3D) -> AABB:
+	var production_root := root as ProductionAssetScript
+	var search_root: Node = production_root.visual_root if production_root and production_root.visual_root else root
 	return _merge_world_mesh_bounds(search_root)
 
 
