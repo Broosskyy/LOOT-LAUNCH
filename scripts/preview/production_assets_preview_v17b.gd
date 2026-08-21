@@ -1,10 +1,10 @@
 extends Node3D
 
-## Phase 17B production preview — floating island inspection with free-roam fly camera.
+## Phase 17B production preview — floating island material inspection with free-roam fly camera.
 
 const ProductionAssetScript = preload("res://scripts/environment/production_asset.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
-const WolkengartenPreviewEnvironmentScript = preload("res://scripts/preview/wolkengarten_preview_environment.gd")
+const IslandMaterialRecoveryScript = preload("res://scripts/preview/island_material_recovery.gd")
 const CAMERA_PADDING := 1.35
 const PITCH_MIN_RAD := -1.483529864195791
 const PITCH_MAX_RAD := 1.483529864195791
@@ -14,8 +14,6 @@ var _view_direction: Vector3 = Vector3(0.55, 0.38, 0.74).normalized()
 
 var camera: Camera3D
 var island_wrapper: Node3D
-var preview_environment: Node3D
-var reference_floor: MeshInstance3D
 var inspection_ui: CanvasLayer
 var move_joystick: Control
 var look_zone: Control
@@ -37,19 +35,17 @@ var _look_sensitivity := 0.0032
 var _mouse_look_active := false
 var _look_pointer := -1
 var _look_last_pos := Vector2.ZERO
-var _debug_ui_visible := true
 var _navigation_ready := false
 var _pinch_base_fov := 52.0
 
 
 func _ready() -> void:
 	_build_environment()
-	_build_floor()
 	_build_inspection_ui()
 	await _build_island()
 	_apply_framing_camera()
 	_navigation_ready = true
-	print("Production preview v17B ready — touch free-roam enabled.")
+	print("Production preview v17B ready — material recovery pass.")
 	print("Preview camera bounds=", _last_world_bounds, " position=", _last_camera_position)
 
 
@@ -88,40 +84,41 @@ func _build_environment() -> void:
 	sky_material.sky_horizon_color = Color("c8e6f5")
 	sky_material.ground_horizon_color = Color("b9d9e8")
 	sky_material.ground_bottom_color = Color("6d9ac1")
-	sky_material.sun_angle_max = 16.0
-	sky_material.sun_curve = 0.06
+	sky_material.sun_angle_max = 14.0
+	sky_material.sun_curve = 0.05
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("c5eaff")
-	environment.ambient_light_energy = 0.42
+	environment.ambient_light_energy = 0.36
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 0.92
+	environment.tonemap_exposure = 0.88
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.16
-	environment.glow_bloom = 0.08
-	environment.glow_hdr_threshold = 1.12
+	environment.glow_intensity = 0.08
+	environment.glow_bloom = 0.04
+	environment.glow_hdr_threshold = 1.25
 	environment.fog_enabled = true
 	environment.fog_light_color = Color("c9ddf5")
-	environment.fog_light_energy = 0.38
-	environment.fog_density = 0.0019
+	environment.fog_light_energy = 0.28
+	environment.fog_density = 0.0014
 	world_environment.environment = environment
 	add_child(world_environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
 	sun.light_color = Color("fff0d0")
-	sun.light_energy = 0.68
+	sun.light_energy = 0.62
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 52.0
 	add_child(sun)
-	var rim := OmniLight3D.new()
-	rim.position = Vector3(-1.0, 5.0, -9.0)
-	rim.light_color = Color("9274ff")
-	rim.light_energy = 0.55
-	rim.omni_range = 18.0
-	add_child(rim)
+	var fill := DirectionalLight3D.new()
+	fill.name = "FillLight"
+	fill.rotation_degrees = Vector3(-28.0, 118.0, 0.0)
+	fill.light_color = Color("c5eaff")
+	fill.light_energy = 0.18
+	fill.shadow_enabled = false
+	add_child(fill)
 	camera = Camera3D.new()
 	camera.name = "PreviewCamera"
 	camera.fov = 52.0
@@ -129,20 +126,6 @@ func _build_environment() -> void:
 	camera.far = 400.0
 	camera.current = true
 	add_child(camera)
-
-
-func _build_floor() -> void:
-	reference_floor = MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(36.0, 28.0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("1a2240", 0.35)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	reference_floor.mesh = plane
-	reference_floor.material_override = mat
-	reference_floor.position = Vector3(0.0, -0.02, -1.0)
-	add_child(reference_floor)
 
 
 func _build_inspection_ui() -> void:
@@ -207,19 +190,14 @@ func _build_island() -> void:
 	island_wrapper = ProductionAssetScript.new()
 	island_wrapper.name = "FloatingIslandProduction"
 	island_wrapper.configure_floating_island(12.8, 1.45, 2)
-	island_wrapper.emission_energy = 0.26
 	island_wrapper.enable_gameplay_collision = false
 	add_child(island_wrapper)
 	await island_wrapper.asset_ready
 	var production_root := island_wrapper as ProductionAssetScript
-	preview_environment = WolkengartenPreviewEnvironmentScript.new()
-	preview_environment.name = "WolkengartenPreviewEnvironment"
-	add_child(preview_environment)
 	if production_root and production_root.visual_root:
-		preview_environment.tame_production_materials(production_root.visual_root)
-	var island_bounds: AABB = _compute_world_visual_bounds(island_wrapper)
-	preview_environment.build_for_island(island_wrapper, island_bounds)
-	preview_environment.set_debug_visible(_debug_ui_visible)
+		var auditor := IslandMaterialRecoveryScript.new()
+		var audit_report: Dictionary = auditor.audit_visual_root(production_root.visual_root)
+		auditor.print_audit(audit_report)
 
 
 func _apply_framing_camera() -> void:
@@ -361,11 +339,7 @@ func _on_overview_pressed() -> void:
 
 
 func _on_ui_toggle_pressed() -> void:
-	_debug_ui_visible = not _debug_ui_visible
-	if reference_floor:
-		reference_floor.visible = _debug_ui_visible
-	if preview_environment:
-		preview_environment.set_debug_visible(_debug_ui_visible)
+	pass
 
 
 func _on_zoom_in_pressed() -> void:

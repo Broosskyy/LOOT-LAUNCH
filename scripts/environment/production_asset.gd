@@ -8,6 +8,7 @@ signal asset_ready(report: Dictionary)
 
 const GLB_HALF_EXTENT_X := 0.96
 const COLLISION_RADIUS_FACTOR := 0.91
+const ISLAND_EMISSION_TINT := Color(0.58, 0.46, 0.92)
 
 @export var asset_key: String = "asset"
 @export var asset_label: String = "Production Asset"
@@ -55,7 +56,7 @@ func configure_floating_island(source_radius: float, thickness: float, quality :
 	lod1_path = "res://art/models/production/asset_02_floating_island/game_ready/LOD1.glb"
 	lod2_path = "res://art/models/production/asset_02_floating_island/game_ready/LOD2.glb"
 	emission_texture_path = "res://art/models/production/asset_02_floating_island/texture_emissive.png"
-	emission_energy = 0.42
+	emission_energy = 0.16
 	visual_scale = gameplay_scale_for_radius(source_radius)
 	gameplay_radius = gameplay_radius_for_source(source_radius)
 	collision_thickness = thickness
@@ -137,6 +138,7 @@ func _build_visual_lods() -> void:
 		lod_root.scale = Vector3.ONE * visual_scale
 		_apply_visibility_ranges(lod_root, configs[i], i)
 		_apply_emissive_overrides(lod_root)
+		_enhance_imported_materials(lod_root)
 		_enforce_opaque_materials(lod_root)
 		visual_root.add_child(lod_root)
 		lod_instances.append(lod_root)
@@ -176,6 +178,7 @@ func _apply_emissive_overrides(node: Node) -> void:
 				if source is StandardMaterial3D:
 					var override_mat: StandardMaterial3D = (source as StandardMaterial3D).duplicate() as StandardMaterial3D
 					override_mat.emission_enabled = true
+					override_mat.emission = ISLAND_EMISSION_TINT
 					override_mat.emission_texture = emission_texture
 					override_mat.emission_energy_multiplier = emission_energy
 					override_mat.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
@@ -183,6 +186,28 @@ func _apply_emissive_overrides(node: Node) -> void:
 					mesh_instance.set_surface_override_material(surface_idx, override_mat)
 	for child in node.get_children():
 		_apply_emissive_overrides(child)
+
+
+func _enhance_imported_materials(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance: MeshInstance3D = node as MeshInstance3D
+		var mesh: Mesh = mesh_instance.mesh
+		if mesh:
+			for surface_idx in mesh.get_surface_count():
+				var material: Material = mesh_instance.get_surface_override_material(surface_idx)
+				if material == null:
+					material = mesh.surface_get_material(surface_idx)
+				if material is StandardMaterial3D:
+					var tuned: StandardMaterial3D = (material as StandardMaterial3D).duplicate() as StandardMaterial3D
+					tuned.albedo_color = Color.WHITE
+					tuned.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+					tuned.roughness = clampf(tuned.roughness, 0.22, 1.0)
+					tuned.metallic = clampf(tuned.metallic, 0.0, 1.0)
+					if tuned.normal_texture:
+						tuned.normal_enabled = true
+					mesh_instance.set_surface_override_material(surface_idx, tuned)
+	for child in node.get_children():
+		_enhance_imported_materials(child)
 
 
 func _enforce_opaque_materials(node: Node) -> void:
