@@ -102,6 +102,15 @@ Moved to `_deprecated/broken_external_lods/`:
 
 ---
 
+## Preview inspection (free-roam)
+
+Manual visual sign-off uses the production-only preview with mobile/desktop fly camera:
+
+- Scene: `scenes/preview/production_assets_preview_v17b.tscn`
+- Docs: `docs/PHASE_17B_PREVIEW_FREE_ROAM.md`
+
+---
+
 ## Tests
 
 ```bash
