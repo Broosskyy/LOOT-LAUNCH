@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://rodinpreview3v17a"]
+
+[ext_resource type="Script" path="res://scripts/preview/rodin_original_assets_preview_v17a.gd" id="1"]
+
+[node name="RodinOriginalAssetsPreviewV17a" type="Node3D"]
+script = ExtResource("1")

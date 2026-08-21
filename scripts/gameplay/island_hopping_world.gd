@@ -49,6 +49,8 @@ const AIM_DEADZONE := 34.0
 const AIM_MAX_DRAG := 360.0
 const MIN_PITCH := 18.0
 const MAX_PITCH := 48.0
+const USE_PRODUCTION_ISLAND_0 := true
+const ProductionAsset = preload("res://scripts/environment/production_asset.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -476,11 +478,19 @@ func _build_islands() -> void:
 	_add_airship(Vector3(24.0, 33.0, -142.0), 2.4)
 
 
-func _add_floating_island(center: Vector3, radius: float, thickness: float, playable: bool, island_index := 0) -> void:
-	var root := Node3D.new()
-	root.name = "SkyIsland%02d" % island_index
-	root.position = center
-	add_child(root)
+func _uses_production_island_visual(island_index: int) -> bool:
+	return island_index == 0 and USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten"
+
+
+func _add_production_island_visual(root: Node3D, radius: float, thickness: float) -> void:
+	var visual = ProductionAsset.new()
+	visual.name = "ProductionIslandVisual"
+	visual.configure_floating_island(radius, thickness, quality_level)
+	visual.enable_gameplay_collision = false
+	root.add_child(visual)
+
+
+func _build_procedural_island_geometry(root: Node3D, radius: float, thickness: float, playable: bool, island_index: int) -> void:
 	var segments := 18
 	var ring := PackedFloat32Array()
 	var local_rng := RandomNumberGenerator.new()
@@ -589,6 +599,17 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 		for i in range(8):
 			var flower_angle := TAU * float(i) / 8.0 + 0.37
 			_add_flower(root, Vector3(cos(flower_angle) * radius * 0.68, 0.08, sin(flower_angle) * radius * 0.58), i % 3)
+
+
+func _add_floating_island(center: Vector3, radius: float, thickness: float, playable: bool, island_index := 0) -> void:
+	var root := Node3D.new()
+	root.name = "SkyIsland%02d" % island_index
+	root.position = center
+	add_child(root)
+	if _uses_production_island_visual(island_index):
+		_add_production_island_visual(root, radius, thickness)
+	else:
+		_build_procedural_island_geometry(root, radius, thickness, playable, island_index)
 	if playable:
 		var body := StaticBody3D.new()
 		root.add_child(body)

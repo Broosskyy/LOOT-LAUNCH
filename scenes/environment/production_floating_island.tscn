@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://prodislandv17b"]
+
+[ext_resource type="Script" path="res://scripts/environment/production_asset.gd" id="1"]
+
+[node name="ProductionFloatingIsland" type="Node3D"]
+script = ExtResource("1")
+auto_configure_floating_island_defaults = true
+enable_gameplay_collision = true

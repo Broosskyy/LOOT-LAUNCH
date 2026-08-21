@@ -5,7 +5,10 @@ The production replacement set is intentionally modular:
 
 ## Directory layout (Phase 17A+)
 
-- `environment/islands/floating_island_base01/` — first production island GLB (LOD0–LOD2)
+- `production/asset_01/` — original Rodin PBR (~120k tris, tall form)
+- `production/asset_02_floating_island/` — original Rodin floating island (9257e8e6)
+- `production/asset_03/` — original Rodin PBR (~120k tris, compact form)
+- `environment/islands/floating_island_base01/` — **deprecated external LOD set** (UV broken — do not use)
 - `gameplay/cannons/` — cannon replacements (pending)
 - `props/` — chests, portals, mushrooms, etc. (pending)
 
@@ -20,7 +23,11 @@ The production replacement set is intentionally modular:
 
 Source concept: `res://art/concept/loot-launch-asset-kit-v16.png`.
 Reusable island scene: `res://scenes/environment/floating_island_base01.tscn`.
-Preview scene: `res://scenes/preview/glb_island_preview_v17a.tscn`.
+Preview scenes:
+- `res://scenes/preview/rodin_original_assets_preview_v17a.tscn` (original Rodin validation)
+- `res://scenes/preview/production_assets_preview_v17b.tscn` (game-ready production validation)
+Production scenes:
+- `res://scenes/environment/production_floating_island.tscn`
 
 Required conventions:
 

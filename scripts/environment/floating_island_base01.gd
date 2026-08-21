@@ -6,9 +6,9 @@ extends Node3D
 signal island_built
 
 const LOD_PATHS := [
-	"res://art/models/environment/islands/floating_island_base01/LL_FloatingIsland_Base01_LOD0.glb",
-	"res://art/models/environment/islands/floating_island_base01/LL_FloatingIsland_Base01_LOD1.glb",
-	"res://art/models/environment/islands/floating_island_base01/LL_FloatingIsland_Base01_LOD2.glb",
+	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD0.glb",
+	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD1.glb",
+	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD2.glb",
 ]
 const GLB_HALF_EXTENT_X := 0.96
 const DEFAULT_SOURCE_RADIUS := 12.8
@@ -73,7 +73,7 @@ func _build_visual_lods() -> void:
 	for i in LOD_PATHS.size():
 		var path: String = LOD_PATHS[i]
 		if not ResourceLoader.exists(path):
-			load_errors.append("Missing GLB: %s" % path)
+			load_errors.append("Deprecated broken LOD (do not use in production): %s" % path)
 			continue
 		var packed: PackedScene = load(path) as PackedScene
 		if packed == null:

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://rodinprodasset01"]
+
+[ext_resource type="Script" path="res://scripts/environment/rodin_original_asset_wrapper.gd" id="1"]
+
+[node name="ProductionAsset01" type="Node3D"]
+script = ExtResource("1")
+pbr_glb_path = "res://art/models/production/asset_01/base_basic_pbr.glb"
+asset_id = "asset_01"
+asset_label = "Asset 1 — Tall Form"
+rodin_uuid = "b34fdb36-0c60-404c-880b-96ece5489eaf"

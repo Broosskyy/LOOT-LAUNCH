@@ -1,0 +1,10 @@
+﻿{
+    "asset_id":  "asset_02_floating_island",
+    "primary_glb":  "base_basic_pbr.glb",
+    "rodin_uuid":  "9257e8e6-b152-4209-8ea3-050df63f1c99",
+    "label":  "Floating Island (Rodin original)",
+    "validation_only":  true,
+    "note":  "Height ~1.05m, footprint ~1.9x1.78m",
+    "floor_y":  0,
+    "triangles":  120000
+}
