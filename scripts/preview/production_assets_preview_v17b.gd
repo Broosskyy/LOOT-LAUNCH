@@ -4,6 +4,7 @@ extends Node3D
 
 const ProductionAssetScript = preload("res://scripts/environment/production_asset.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
+const WolkengartenPreviewEnvironmentScript = preload("res://scripts/preview/wolkengarten_preview_environment.gd")
 const CAMERA_PADDING := 1.35
 const PITCH_MIN_RAD := -1.483529864195791
 const PITCH_MAX_RAD := 1.483529864195791
@@ -13,7 +14,7 @@ var _view_direction: Vector3 = Vector3(0.55, 0.38, 0.74).normalized()
 
 var camera: Camera3D
 var island_wrapper: Node3D
-var debug_marker: MeshInstance3D
+var preview_environment: Node3D
 var reference_floor: MeshInstance3D
 var inspection_ui: CanvasLayer
 var move_joystick: Control
@@ -87,27 +88,40 @@ func _build_environment() -> void:
 	sky_material.sky_horizon_color = Color("c8e6f5")
 	sky_material.ground_horizon_color = Color("b9d9e8")
 	sky_material.ground_bottom_color = Color("6d9ac1")
+	sky_material.sun_angle_max = 16.0
+	sky_material.sun_curve = 0.06
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("c5eaff")
-	environment.ambient_light_energy = 0.60
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.ambient_light_energy = 0.42
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = 0.92
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.38
+	environment.glow_intensity = 0.16
+	environment.glow_bloom = 0.08
+	environment.glow_hdr_threshold = 1.12
 	environment.fog_enabled = true
 	environment.fog_light_color = Color("c9ddf5")
-	environment.fog_density = 0.0017
+	environment.fog_light_energy = 0.38
+	environment.fog_density = 0.0019
 	world_environment.environment = environment
 	add_child(world_environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
 	sun.light_color = Color("fff0d0")
-	sun.light_energy = 0.94
+	sun.light_energy = 0.68
 	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 52.0
 	add_child(sun)
+	var rim := OmniLight3D.new()
+	rim.position = Vector3(-1.0, 5.0, -9.0)
+	rim.light_color = Color("9274ff")
+	rim.light_energy = 0.55
+	rim.omni_range = 18.0
+	add_child(rim)
 	camera = Camera3D.new()
 	camera.name = "PreviewCamera"
 	camera.fov = 52.0
@@ -151,8 +165,8 @@ func _build_inspection_ui() -> void:
 	left_zone.add_child(move_joystick)
 	look_zone = _make_screen_zone(
 		"LookZone",
-		Vector2(viewport_size.x * 0.5, 0.0),
-		Vector2(viewport_size.x * 0.5, viewport_size.y)
+		Vector2(viewport_size.x * 0.5, 72.0),
+		Vector2(viewport_size.x * 0.5, viewport_size.y - 72.0)
 	)
 	look_zone.gui_input.connect(_on_look_zone_gui_input)
 	inspection_ui.add_child(look_zone)
@@ -193,8 +207,19 @@ func _build_island() -> void:
 	island_wrapper = ProductionAssetScript.new()
 	island_wrapper.name = "FloatingIslandProduction"
 	island_wrapper.configure_floating_island(12.8, 1.45, 2)
+	island_wrapper.emission_energy = 0.26
+	island_wrapper.enable_gameplay_collision = false
 	add_child(island_wrapper)
 	await island_wrapper.asset_ready
+	var production_root := island_wrapper as ProductionAssetScript
+	preview_environment = WolkengartenPreviewEnvironmentScript.new()
+	preview_environment.name = "WolkengartenPreviewEnvironment"
+	add_child(preview_environment)
+	if production_root and production_root.visual_root:
+		preview_environment.tame_production_materials(production_root.visual_root)
+	var island_bounds: AABB = _compute_world_visual_bounds(island_wrapper)
+	preview_environment.build_for_island(island_wrapper, island_bounds)
+	preview_environment.set_debug_visible(_debug_ui_visible)
 
 
 func _apply_framing_camera() -> void:
@@ -216,7 +241,6 @@ func _apply_framing_camera() -> void:
 	camera.global_position = camera_position
 	camera.look_at(_framing_center, Vector3.UP)
 	_store_framing_state()
-	_update_debug_marker(_framing_center)
 
 
 func _store_framing_state() -> void:
@@ -338,10 +362,10 @@ func _on_overview_pressed() -> void:
 
 func _on_ui_toggle_pressed() -> void:
 	_debug_ui_visible = not _debug_ui_visible
-	if debug_marker:
-		debug_marker.visible = _debug_ui_visible
 	if reference_floor:
 		reference_floor.visible = _debug_ui_visible
+	if preview_environment:
+		preview_environment.set_debug_visible(_debug_ui_visible)
 
 
 func _on_zoom_in_pressed() -> void:
@@ -375,23 +399,3 @@ func _merge_world_mesh_bounds(node: Node) -> AABB:
 			merged = child_box if not has_box else merged.merge(child_box)
 			has_box = true
 	return merged if has_box else AABB()
-
-
-func _update_debug_marker(center: Vector3) -> void:
-	if debug_marker == null:
-		debug_marker = MeshInstance3D.new()
-		var sphere := SphereMesh.new()
-		sphere.radius = 0.12
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color("45d8aa")
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		debug_marker.mesh = sphere
-		debug_marker.material_override = mat
-		add_child(debug_marker)
-	var marker_position: Vector3 = Vector3(
-		center.x,
-		_last_world_bounds.position.y + _last_world_bounds.size.y + 0.45,
-		center.z
-	)
-	debug_marker.global_position = marker_position
-	debug_marker.visible = _debug_ui_visible
