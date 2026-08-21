@@ -100,6 +100,6 @@ func _add_label(pos: Vector3, text: String) -> void:
 func _position_camera() -> void:
 	if camera == null or island_wrapper == null:
 		return
-	var target := island_wrapper.global_position + island_wrapper.get_bounds_center() + Vector3(0.0, 0.35, 0.0)
+	var target: Vector3 = island_wrapper.global_position + island_wrapper.get_bounds_center() + Vector3(0.0, 0.35, 0.0)
 	camera.global_position = island_wrapper.get_safe_camera_position(target, 3.2, 1.8)
 	camera.look_at(target, Vector3.UP)
