@@ -201,8 +201,6 @@ func _enhance_imported_materials(node: Node) -> void:
 					var tuned: StandardMaterial3D = (material as StandardMaterial3D).duplicate() as StandardMaterial3D
 					tuned.albedo_color = Color.WHITE
 					tuned.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-					tuned.roughness = clampf(tuned.roughness, 0.22, 1.0)
-					tuned.metallic = clampf(tuned.metallic, 0.0, 1.0)
 					if tuned.normal_texture:
 						tuned.normal_enabled = true
 					mesh_instance.set_surface_override_material(surface_idx, tuned)

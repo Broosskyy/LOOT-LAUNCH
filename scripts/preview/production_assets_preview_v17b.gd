@@ -17,6 +17,7 @@ var island_wrapper: Node3D
 var inspection_ui: CanvasLayer
 var move_joystick: Control
 var look_zone: Control
+var qa_toolbar: HBoxContainer
 
 var _last_world_bounds := AABB()
 var _last_camera_position := Vector3.ZERO
@@ -37,6 +38,7 @@ var _look_pointer := -1
 var _look_last_pos := Vector2.ZERO
 var _navigation_ready := false
 var _pinch_base_fov := 52.0
+var _qa_presets_visible := false
 
 
 func _ready() -> void:
@@ -45,7 +47,7 @@ func _ready() -> void:
 	await _build_island()
 	_apply_framing_camera()
 	_navigation_ready = true
-	print("Production preview v17B ready — material recovery pass.")
+	print("Production preview v17B ready — material visual QA.")
 	print("Preview camera bounds=", _last_world_bounds, " position=", _last_camera_position)
 
 
@@ -148,7 +150,7 @@ func _build_inspection_ui() -> void:
 	left_zone.add_child(move_joystick)
 	look_zone = _make_screen_zone(
 		"LookZone",
-		Vector2(viewport_size.x * 0.5, 72.0),
+		Vector2(viewport_size.x * 0.5, 118.0),
 		Vector2(viewport_size.x * 0.5, viewport_size.y - 72.0)
 	)
 	look_zone.gui_input.connect(_on_look_zone_gui_input)
@@ -166,6 +168,18 @@ func _build_inspection_ui() -> void:
 	toolbar.add_child(_make_tool_button("UI", _on_ui_toggle_pressed))
 	toolbar.add_child(_make_tool_button("+", _on_zoom_in_pressed))
 	toolbar.add_child(_make_tool_button("-", _on_zoom_out_pressed))
+	qa_toolbar = HBoxContainer.new()
+	qa_toolbar.name = "QAToolbar"
+	qa_toolbar.add_theme_constant_override("separation", 8)
+	qa_toolbar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	qa_toolbar.offset_top = 66.0
+	qa_toolbar.offset_bottom = 110.0
+	qa_toolbar.alignment = BoxContainer.ALIGNMENT_CENTER
+	qa_toolbar.visible = false
+	inspection_ui.add_child(qa_toolbar)
+	qa_toolbar.add_child(_make_tool_button("SURFACE", _on_surface_preset_pressed))
+	qa_toolbar.add_child(_make_tool_button("CRYSTAL", _on_crystal_preset_pressed))
+	qa_toolbar.add_child(_make_tool_button("CLIFF", _on_cliff_preset_pressed))
 
 
 func _make_screen_zone(zone_name: String, origin: Vector2, zone_size: Vector2) -> Control:
@@ -196,8 +210,8 @@ func _build_island() -> void:
 	var production_root := island_wrapper as ProductionAssetScript
 	if production_root and production_root.visual_root:
 		var auditor := IslandMaterialRecoveryScript.new()
-		var audit_report: Dictionary = auditor.audit_visual_root(production_root.visual_root)
-		auditor.print_audit(audit_report)
+		var qa_report: Dictionary = auditor.verify_qa_materials(production_root.visual_root)
+		auditor.print_qa_report(qa_report)
 
 
 func _apply_framing_camera() -> void:
@@ -339,7 +353,58 @@ func _on_overview_pressed() -> void:
 
 
 func _on_ui_toggle_pressed() -> void:
-	pass
+	_qa_presets_visible = not _qa_presets_visible
+	if qa_toolbar:
+		qa_toolbar.visible = _qa_presets_visible
+
+
+func _on_surface_preset_pressed() -> void:
+	_apply_qa_camera_preset("surface")
+
+
+func _on_crystal_preset_pressed() -> void:
+	_apply_qa_camera_preset("crystal")
+
+
+func _on_cliff_preset_pressed() -> void:
+	_apply_qa_camera_preset("cliff")
+
+
+func _apply_qa_camera_preset(preset: String) -> void:
+	if camera == null or island_wrapper == null:
+		return
+	var bounds: AABB = _compute_world_visual_bounds(island_wrapper)
+	if bounds.size == Vector3.ZERO:
+		return
+	var center: Vector3 = bounds.get_center()
+	var top_y: float = bounds.position.y + bounds.size.y * 0.9
+	var radius: float = maxf(bounds.size.x, bounds.size.z) * 0.5
+	var look_target: Vector3 = center
+	var camera_position: Vector3 = center
+	var target_fov: float = camera.fov
+	match preset:
+		"surface":
+			look_target = Vector3(center.x, top_y, center.z + radius * 0.08)
+			camera_position = look_target + Vector3(radius * 0.12, 5.5, radius * 0.42)
+			target_fov = 40.0
+		"crystal":
+			look_target = Vector3(center.x + radius * 0.24, top_y + bounds.size.y * 0.03, center.z - radius * 0.18)
+			camera_position = look_target + Vector3(radius * 0.18, 3.2, radius * 0.34)
+			target_fov = 36.0
+		"cliff":
+			look_target = Vector3(center.x - radius * 0.32, center.y - bounds.size.y * 0.2, center.z + radius * 0.06)
+			camera_position = center + Vector3(-radius * 0.95, bounds.size.y * 0.08, radius * 0.52)
+			target_fov = 46.0
+	camera.global_position = camera_position
+	camera.look_at(look_target, Vector3.UP)
+	camera.fov = target_fov
+	_sync_camera_angles_from_transform()
+	_pinch_base_fov = camera.fov
+
+
+func _sync_camera_angles_from_transform() -> void:
+	_camera_yaw = camera.rotation.y
+	_camera_pitch = camera.rotation.x
 
 
 func _on_zoom_in_pressed() -> void:
