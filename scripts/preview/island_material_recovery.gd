@@ -3,8 +3,9 @@ extends Node
 ## Preview-only material audit and QA verification — no geometry, no material overrides.
 
 const EXPECTED_MAP_SIZE := 2048
-const EXPECTED_EMISSION_ENERGY := 0.16
-const EXPECTED_EMISSION_TINT := Color(0.58, 0.46, 0.92)
+const EXPECTED_EMISSION_ENERGY := 0.06
+const EXPECTED_EMISSION_TINT := Color(1.0, 1.0, 1.0)
+const EXPECT_AO_PROXY := false
 const EXPECTED_TEXTURE_FILTER := BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 
@@ -144,7 +145,7 @@ func _verify_surface(surface: Dictionary) -> Array[Dictionary]:
 	))
 	checks.append(_check(
 		"%s ao proxy active" % prefix,
-		_has_map_size(surface, "ao:", EXPECTED_MAP_SIZE),
+		not EXPECT_AO_PROXY or _has_map_size(surface, "ao:", EXPECTED_MAP_SIZE),
 		map_text
 	))
 	checks.append(_check(
@@ -160,9 +161,8 @@ func _atlas_analysis() -> PackedStringArray:
 		"Single material \"model\" shares one 2048 atlas for grass, stone, cliff, and crystals.",
 		"Per-region roughness/metallic variation must come from the MR texture green/blue channels.",
 		"Scalar roughness/metallic factors are preserved from glTF import; no runtime scalar clamp applied.",
-		"Emission is masked by texture_emissive.png; black mask pixels should not glow on grass/stone/cliff.",
-		"Atlas UV islands may show mip bleeding at sharp color boundaries — inspect SURFACE preset closely.",
-		"No AO map is present; micro-contrast relies on normal + MR + lighting only.",
+		"Emission is masked by texture_emissive.png; tint is white so texture color drives violet crystals.",
+		"Albedo-derived AO proxy disabled for parity — it brightened grass and reduced contrast.",
 	])
 
 

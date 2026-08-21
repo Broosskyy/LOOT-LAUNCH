@@ -8,7 +8,8 @@ signal asset_ready(report: Dictionary)
 
 const GLB_HALF_EXTENT_X := 0.96
 const COLLISION_RADIUS_FACTOR := 0.91
-const ISLAND_EMISSION_TINT := Color(0.58, 0.46, 0.92)
+const ISLAND_EMISSION_TINT := Color(1.0, 1.0, 1.0)
+const PARITY_EMISSION_ENERGY := 0.06
 
 @export var asset_key: String = "asset"
 @export var asset_label: String = "Production Asset"
@@ -17,8 +18,9 @@ const ISLAND_EMISSION_TINT := Color(0.58, 0.46, 0.92)
 @export var lod2_path: String = ""
 @export var emission_texture_path: String = ""
 @export var ao_texture_path: String = ""
+@export var use_ao_proxy: bool = false
 @export_range(0.0, 2.0) var emission_energy: float = 0.42
-@export_range(0.0, 1.0) var ao_light_affect: float = 0.72
+@export_range(0.0, 1.0) var ao_light_affect: float = 0.45
 @export var visual_scale: float = 1.0
 @export var enable_gameplay_collision: bool = false
 @export var gameplay_radius: float = 11.648
@@ -59,7 +61,8 @@ func configure_floating_island(source_radius: float, thickness: float, quality :
 	lod2_path = "res://art/models/production/asset_02_floating_island/game_ready/LOD2.glb"
 	emission_texture_path = "res://art/models/production/asset_02_floating_island/texture_emissive.png"
 	ao_texture_path = "res://art/models/production/asset_02_floating_island/texture_ao_proxy.png"
-	emission_energy = 0.16
+	use_ao_proxy = false
+	emission_energy = PARITY_EMISSION_ENERGY
 	visual_scale = gameplay_scale_for_radius(source_radius)
 	gameplay_radius = gameplay_radius_for_source(source_radius)
 	collision_thickness = thickness
@@ -206,6 +209,7 @@ func _enhance_imported_materials(node: Node) -> void:
 					tuned.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 					if tuned.normal_texture:
 						tuned.normal_enabled = true
+						tuned.normal_scale = 1.0
 					_apply_optional_ao(tuned)
 					mesh_instance.set_surface_override_material(surface_idx, tuned)
 	for child in node.get_children():
@@ -213,7 +217,7 @@ func _enhance_imported_materials(node: Node) -> void:
 
 
 func _apply_optional_ao(material: StandardMaterial3D) -> void:
-	if ao_texture_path.is_empty() or not ResourceLoader.exists(ao_texture_path):
+	if not use_ao_proxy or ao_texture_path.is_empty() or not ResourceLoader.exists(ao_texture_path):
 		return
 	var ao_texture: Texture2D = load(ao_texture_path) as Texture2D
 	if ao_texture == null:

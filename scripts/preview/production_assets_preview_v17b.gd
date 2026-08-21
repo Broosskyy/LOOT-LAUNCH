@@ -1,10 +1,11 @@
 extends Node3D
 
-## Phase 17B production preview — floating island material inspection with free-roam fly camera.
+## Phase 17C production preview — Rodin visual parity inspection with free-roam fly camera.
 
 const ProductionAssetScript = preload("res://scripts/environment/production_asset.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const IslandMaterialRecoveryScript = preload("res://scripts/preview/island_material_recovery.gd")
+const WolkengartenParityRenderScript = preload("res://scripts/preview/wolkengarten_parity_render.gd")
 const CAMERA_PADDING := 1.35
 const PITCH_MIN_RAD := -1.483529864195791
 const PITCH_MAX_RAD := 1.483529864195791
@@ -42,12 +43,13 @@ var _qa_presets_visible := false
 
 
 func _ready() -> void:
+	WolkengartenParityRenderScript.print_root_cause_audit()
 	_build_environment()
 	_build_inspection_ui()
 	await _build_island()
 	_apply_framing_camera()
 	_navigation_ready = true
-	print("Production preview v17B ready — material visual QA.")
+	print("Production preview v17C ready — Rodin parity pass.")
 	print("Preview camera bounds=", _last_world_bounds, " position=", _last_camera_position)
 
 
@@ -82,45 +84,19 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("3d82d6")
-	sky_material.sky_horizon_color = Color("c8e6f5")
-	sky_material.ground_horizon_color = Color("b9d9e8")
-	sky_material.ground_bottom_color = Color("6d9ac1")
-	sky_material.sun_angle_max = 14.0
-	sky_material.sun_curve = 0.05
 	var sky := Sky.new()
+	WolkengartenParityRenderScript.apply_preview_environment(environment, sky_material)
 	sky.sky_material = sky_material
-	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("c5eaff")
-	environment.ambient_light_energy = 0.36
-	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 0.88
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.08
-	environment.glow_bloom = 0.04
-	environment.glow_hdr_threshold = 1.25
-	environment.fog_enabled = true
-	environment.fog_light_color = Color("c9ddf5")
-	environment.fog_light_energy = 0.28
-	environment.fog_density = 0.0014
 	world_environment.environment = environment
 	add_child(world_environment)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
-	sun.light_color = Color("fff0d0")
-	sun.light_energy = 0.62
+	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
+	WolkengartenParityRenderScript.apply_preview_sun(sun)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 52.0
+	sun.shadow_opacity = 0.82
 	add_child(sun)
-	var fill := DirectionalLight3D.new()
-	fill.name = "FillLight"
-	fill.rotation_degrees = Vector3(-28.0, 118.0, 0.0)
-	fill.light_color = Color("c5eaff")
-	fill.light_energy = 0.18
-	fill.shadow_enabled = false
-	add_child(fill)
 	camera = Camera3D.new()
 	camera.name = "PreviewCamera"
 	camera.fov = 52.0
