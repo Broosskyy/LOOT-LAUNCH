@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8preview17aglb"]
-
-[ext_resource type="Script" path="res://scripts/preview/glb_island_preview_v17a.gd" id="1_preview"]
-
-[node name="GlbIslandPreviewV17a" type="Node3D"]
-script = ExtResource("1_preview")

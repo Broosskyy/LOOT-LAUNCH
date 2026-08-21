@@ -5,11 +5,10 @@ extends Node3D
 
 signal island_built
 
-const LOD_PATHS := [
-	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD0.glb",
-	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD1.glb",
-	"res://art/models/_deprecated/broken_external_lods/floating_island_base01/LL_FloatingIsland_Base01_LOD2.glb",
-]
+## Deprecated Phase 17A broken external LODs — archived outside res:// (Phase 17B.1).
+## Use `production_asset.gd` / `production_floating_island.tscn` instead.
+const ARCHIVE_LOCATION := "../LOOT_LAUNCH_SOURCE_ASSETS/deprecated/broken_external_lods/floating_island_base01/"
+const LOD_PATHS: Array[String] = []
 const GLB_HALF_EXTENT_X := 0.96
 const DEFAULT_SOURCE_RADIUS := 12.8
 const COLLISION_RADIUS_FACTOR := 0.91
@@ -39,6 +38,13 @@ func build_island() -> void:
 	_clear_children()
 	load_errors.clear()
 	lod_instances.clear()
+	if LOD_PATHS.is_empty():
+		load_errors.append(
+			"Deprecated broken external LODs archived outside res:// at %s — use production_floating_island.tscn"
+			% ARCHIVE_LOCATION
+		)
+		island_built.emit.call_deferred()
+		return
 	visual_scale = visual_scale_override if visual_scale_override > 0.0 else source_radius / GLB_HALF_EXTENT_X
 	gameplay_radius = gameplay_radius_override if gameplay_radius_override > 0.0 else source_radius * COLLISION_RADIUS_FACTOR
 	_build_visual_lods()

@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://prodasset01v17b"]
+
+[ext_resource type="Script" path="res://scripts/environment/production_asset.gd" id="1"]
+
+[node name="ProductionTallProp" type="Node3D"]
+script = ExtResource("1")
+asset_key = "asset_01"
+asset_label = "Asset 1 — Tall Form"
+lod0_path = "res://art/models/production/asset_01/game_ready/LOD0.glb"
+lod1_path = "res://art/models/production/asset_01/game_ready/LOD1.glb"
+lod2_path = "res://art/models/production/asset_01/game_ready/LOD2.glb"
+emission_texture_path = "res://art/models/production/asset_01/texture_emissive.png"

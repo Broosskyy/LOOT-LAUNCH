@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://rodinprodasset02"]
+
+[ext_resource type="Script" path="res://scripts/environment/rodin_original_asset_wrapper.gd" id="1"]
+
+[node name="ProductionAsset02" type="Node3D"]
+script = ExtResource("1")
+pbr_glb_path = "res://art/models/production/asset_02_floating_island/base_basic_pbr.glb"
+asset_id = "asset_02_floating_island"
+asset_label = "Asset 2 — Floating Island"
+rodin_uuid = "9257e8e6-b152-4209-8ea3-050df63f1c99"

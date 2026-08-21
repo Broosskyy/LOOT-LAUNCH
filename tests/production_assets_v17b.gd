@@ -1,16 +1,13 @@
 extends SceneTree
 
 
-const MANIFESTS := [
-	"res://art/models/production/asset_01/game_ready/pipeline_manifest.json",
-	"res://art/models/production/asset_02_floating_island/game_ready/pipeline_manifest.json",
-	"res://art/models/production/asset_03/game_ready/pipeline_manifest.json",
-]
+const MANIFEST := "res://art/models/production/asset_02_floating_island/game_ready/pipeline_manifest.json"
 const LODS := [
-	"res://art/models/production/asset_01/game_ready/LOD0.glb",
 	"res://art/models/production/asset_02_floating_island/game_ready/LOD0.glb",
-	"res://art/models/production/asset_03/game_ready/LOD0.glb",
+	"res://art/models/production/asset_02_floating_island/game_ready/LOD1.glb",
+	"res://art/models/production/asset_02_floating_island/game_ready/LOD2.glb",
 ]
+const EMISSIVE := "res://art/models/production/asset_02_floating_island/texture_emissive.png"
 
 
 func _init() -> void:
@@ -18,10 +15,10 @@ func _init() -> void:
 
 
 func _run() -> void:
-	for path in MANIFESTS:
-		assert(FileAccess.file_exists(path), "Missing manifest: " + path)
+	assert(FileAccess.file_exists(MANIFEST), "Missing manifest: " + MANIFEST)
 	for path in LODS:
 		assert(FileAccess.file_exists(path), "Missing game-ready LOD: " + path)
+	assert(FileAccess.file_exists(EMISSIVE), "Missing emissive texture: " + EMISSIVE)
 	var ProductionAsset = load("res://scripts/environment/production_asset.gd")
 	var island = ProductionAsset.new()
 	island.configure_floating_island(12.8, 1.45, 2)
@@ -36,5 +33,5 @@ func _run() -> void:
 	assert(island.collision_body != null, "Floating island collision required")
 	assert(island.lod_instances.size() == 3, "Three LOD instances required")
 	assert(absf(island.visual_scale - 13.333333) < 0.02, "Gameplay scale mapping")
-	print("LOOT LAUNCH production assets v17B validation passed")
+	print("LOOT LAUNCH production assets v17B validation passed (floating island only)")
 	quit(0)

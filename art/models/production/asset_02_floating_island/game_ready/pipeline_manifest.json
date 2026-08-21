@@ -1,6 +1,6 @@
 {
   "pipeline": "gltf-transform weld + meshoptimizer simplify (cascade)",
-  "source": "../base_basic_pbr.glb",
+  "source": "../LOOT_LAUNCH_SOURCE_ASSETS/rodin/floating_island/base_basic_pbr.glb",
   "original_triangles": 120000,
   "lod0_triangles": 70658,
   "lod1_triangles": 56502,

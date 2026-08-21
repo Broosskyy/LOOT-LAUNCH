@@ -1,33 +1,37 @@
 # LOOT LAUNCH 3D asset slots
 
 Godot 4 imports `.glb`/glTF assets placed in this directory automatically.
-The production replacement set is intentionally modular:
 
-## Directory layout (Phase 17A+)
+## Active production under `res://` (Phase 17B.1)
 
-- `production/asset_01/` — original Rodin PBR (~120k tris, tall form)
-- `production/asset_02_floating_island/` — original Rodin floating island (9257e8e6)
-- `production/asset_03/` — original Rodin PBR (~120k tris, compact form)
-- `environment/islands/floating_island_base01/` — **deprecated external LOD set** (UV broken — do not use)
+Only **Floating Island Base01** game-ready assets remain imported for current gameplay:
+
+- `production/asset_02_floating_island/game_ready/LOD0.glb`
+- `production/asset_02_floating_island/game_ready/LOD1.glb`
+- `production/asset_02_floating_island/game_ready/LOD2.glb`
+- `production/asset_02_floating_island/texture_emissive.png`
+
+Gameplay wrapper: `res://scenes/environment/production_floating_island.tscn`  
+Preview (production only): `res://scenes/preview/production_assets_preview_v17b.tscn`
+
+## Source archive (outside project)
+
+Rodin originals (~120k PBR), shaded comparison GLBs, asset 1/3 game-ready LODs, and deprecated broken external LODs were moved to:
+
+**`../LOOT_LAUNCH_SOURCE_ASSETS/`** — see `art/models/SOURCE_ARCHIVE_LOCATION.md`
+
+## Deprecated / archived
+
+- Phase 17A broken external LODs → external `deprecated/broken_external_lods/`
+- Validation scenes → `scenes/_archived/17b1/`
+- `environment/islands/floating_island_base01/` — documentation slot only (GLBs archived)
+
+## Pending slots
+
 - `gameplay/cannons/` — cannon replacements (pending)
 - `props/` — chests, portals, mushrooms, etc. (pending)
 
-## Planned root-level slots
-
-- `cannon_standard.glb`
-- `island_cliff_chunk_a.glb`
-- `portal_arch.glb`
-- `treasure_chest.glb`
-- `spring_mushroom.glb`
-- `bouncer.glb`
-
 Source concept: `res://art/concept/loot-launch-asset-kit-v16.png`.
-Reusable island scene: `res://scenes/environment/floating_island_base01.tscn`.
-Preview scenes:
-- `res://scenes/preview/rodin_original_assets_preview_v17a.tscn` (original Rodin validation)
-- `res://scenes/preview/production_assets_preview_v17b.tscn` (game-ready production validation)
-Production scenes:
-- `res://scenes/environment/production_floating_island.tscn`
 
 Required conventions:
 
