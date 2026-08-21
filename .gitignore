@@ -1,0 +1,8 @@
+.godot/
+build/
+exports/
+config/backend.json
+.env
+*.keystore
+*.jks
+

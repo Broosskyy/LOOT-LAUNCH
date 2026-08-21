@@ -1,0 +1,2 @@
+import { cors, requireUser } from "../_shared/http.ts";
+Deno.serve(async (req) => { const headers=cors(req); if(req.method==="OPTIONS") return new Response(null,{status:204,headers}); try { const{client}=await requireUser(req); const{data,error}=await client.rpc("get_cloud_save"); if(error)throw error; return new Response(JSON.stringify(data.Profile),{headers}); } catch(e){return new Response(JSON.stringify({error:e instanceof Error?e.message:"request_failed"}),{status:400,headers});} });

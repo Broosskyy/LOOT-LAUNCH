@@ -1,0 +1,5 @@
+disable:
+- max-line-length
+- max-public-methods
+max-file-lines: 1200
+tab-characters: 1

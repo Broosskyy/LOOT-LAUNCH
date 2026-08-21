@@ -1,0 +1,6 @@
+{
+  "supabase_url": "https://YOUR_PROJECT_REF.supabase.co",
+  "publishable_key": "sb_publishable_REPLACE_ME",
+  "functions_url": "https://YOUR_PROJECT_REF.supabase.co/functions/v1"
+}
+

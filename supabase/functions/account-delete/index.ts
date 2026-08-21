@@ -1,0 +1,3 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { cors, requireUser } from "../_shared/http.ts";
+Deno.serve(async(req)=>{const headers=cors(req);if(req.method==="OPTIONS")return new Response(null,{status:204,headers});try{const{user}=await requireUser(req);const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});const{error}=await admin.auth.admin.deleteUser(user.id);if(error)throw error;return new Response("{}",{headers});}catch(e){return new Response(JSON.stringify({error:e instanceof Error?e.message:"request_failed"}),{status:400,headers});}});

@@ -1,0 +1,42 @@
+; LOOT LAUNCH — Godot 4 project
+config_version=5
+
+[application]
+config/name="LOOT LAUNCH"
+config/version="0.16.0"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0.055, 0.063, 0.13, 1)
+boot_splash/image="res://art/concept/loot-launch-key-art.png"
+boot_splash/fullsize=false
+
+[autoload]
+AudioManager="*res://scripts/audio/audio_manager.gd"
+GameState="*res://scripts/core/game_state.gd"
+
+[display]
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=432
+window/size/window_height_override=768
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+window/energy_saving/keep_screen_on=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.055, 0.063, 0.13, 1)
+
+[physics]
+2d/default_gravity=980.0
+3d/default_gravity=8.6
+common/enable_pause_aware_picking=true
+
+[audio]
+driver/enable_input=false
+default_bus_layout="res://audio/default_bus_layout.tres"
+
+[network]
+limits/debugger/max_chars_per_second=32768
