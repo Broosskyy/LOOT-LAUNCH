@@ -49,8 +49,15 @@ const AIM_DEADZONE := 34.0
 const AIM_MAX_DRAG := 360.0
 const MIN_PITCH := 18.0
 const MAX_PITCH := 48.0
-const USE_PRODUCTION_ISLAND_0 := true
+const USE_STYLIZED_V18 := true
+const USE_PRODUCTION_ISLAND_0 := false
 const ProductionAsset = preload("res://scripts/environment/production_asset.gd")
+const StylizedMaterialLibrary = preload("res://scripts/environment/stylized/stylized_material_library.gd")
+const StylizedLighting = preload("res://scripts/environment/stylized/stylized_lighting.gd")
+const StylizedIslandGenerator = preload("res://scripts/environment/stylized/stylized_island_generator.gd")
+const StylizedWorldDecorator = preload("res://scripts/environment/stylized/stylized_world_decorator.gd")
+const StylizedCloudGenerator = preload("res://scripts/environment/stylized/stylized_cloud_generator.gd")
+const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -230,7 +237,9 @@ func _build_materials() -> void:
 		"flower_pink": _material(Color("ff8cca"), 0.43, 0.0, Color("e34d9c"), 0.35),
 		"cheek": _material(Color("ff86a8"), 0.54, 0.0),
 	}
-	if expedition_key == "crystal_forge":
+	if _uses_stylized_v18():
+		StylizedMaterialLibrary.apply_palette(mats, Callable(self, "_material"), Callable(self, "_transparent_material"))
+	elif expedition_key == "crystal_forge":
 		mats.rock = _material(Color("394666"), 0.86, 0.04)
 		mats.rock_mid = _material(Color("283653"), 0.90, 0.02)
 		mats.rock_dark = _material(Color("17243d"), 0.94, 0.02)
@@ -256,7 +265,8 @@ func _configure_solid_materials() -> void:
 	var double_sided := [
 		"rock", "rock_mid", "rock_dark", "cliff_warm", "grass", "grass_light",
 		"grass_gold", "grass_mint", "grass_blue", "grass_lilac", "grass_amber",
-		"grass_royal", "edge_moss",
+		"grass_royal", "edge_moss", "grass_main", "grass_dark", "stone_main",
+		"stone_dark", "stone_light", "dirt", "leaf_green",
 	]
 	for key in mats.keys():
 		var material := mats[key] as StandardMaterial3D
@@ -294,55 +304,65 @@ func _build_environment() -> void:
 	# A real procedural sky covers every orbit direction. The old single quad
 	# exposed the grey clear colour whenever the player turned sideways.
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("263c8f") if expedition_key == "crystal_forge" else Color("3d82d6")
-	sky_material.sky_horizon_color = Color("b7b8f3") if expedition_key == "crystal_forge" else Color("c8e6f5")
-	sky_material.ground_horizon_color = Color("8fcde3") if expedition_key == "crystal_forge" else Color("b9d9e8")
-	sky_material.ground_bottom_color = Color("394f89") if expedition_key == "crystal_forge" else Color("6d9ac1")
-	sky_material.sun_angle_max = 18.0
-	sky_material.sun_curve = 0.08
+	if not _uses_stylized_v18():
+		sky_material.sky_top_color = Color("263c8f") if expedition_key == "crystal_forge" else Color("3d82d6")
+		sky_material.sky_horizon_color = Color("b7b8f3") if expedition_key == "crystal_forge" else Color("c8e6f5")
+		sky_material.ground_horizon_color = Color("8fcde3") if expedition_key == "crystal_forge" else Color("b9d9e8")
+		sky_material.ground_bottom_color = Color("394f89") if expedition_key == "crystal_forge" else Color("6d9ac1")
+		sky_material.sun_angle_max = 18.0
+		sky_material.sun_curve = 0.08
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("c9d4ff") if expedition_key == "crystal_forge" else Color("c5eaff")
-	if _uses_production_material_lighting():
-		environment.ambient_light_energy = 0.36
-		environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-		environment.tonemap_exposure = 0.88
-		environment.glow_enabled = true
-		environment.glow_intensity = 0.08
-		environment.glow_bloom = 0.04
-		environment.glow_hdr_threshold = 1.25
-	else:
-		environment.ambient_light_energy = 0.60
-		environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-		environment.glow_enabled = quality_level >= 1
-		environment.glow_intensity = 0.42 if quality_level == 1 else 0.52
-	if quality_level >= 2:
-		environment.fog_enabled = true
-		environment.fog_light_color = Color("c9ddf5")
-		environment.fog_light_energy = 0.42
-		environment.fog_density = 0.0017
+	if not _uses_stylized_v18():
+		environment.ambient_light_color = Color("c9d4ff") if expedition_key == "crystal_forge" else Color("c5eaff")
+		if _uses_production_material_lighting():
+			environment.ambient_light_energy = 0.36
+			environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+			environment.tonemap_exposure = 0.88
+			environment.glow_enabled = true
+			environment.glow_intensity = 0.08
+			environment.glow_bloom = 0.04
+			environment.glow_hdr_threshold = 1.25
+		else:
+			environment.ambient_light_energy = 0.60
+			environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+			environment.glow_enabled = quality_level >= 1
+			environment.glow_intensity = 0.42 if quality_level == 1 else 0.52
+		if quality_level >= 2:
+			environment.fog_enabled = true
+			environment.fog_light_color = Color("c9ddf5")
+			environment.fog_light_energy = 0.42
+			environment.fog_density = 0.0017
 	world_environment.environment = environment
 	add_child(world_environment)
 	camera = Camera3D.new()
 	camera.name = "DioramaCamera"
-	camera.fov = 61.0
+	camera.fov = 58.0 if _uses_stylized_v18() else 61.0
 	camera.near = 0.08
 	camera.far = 340.0
 	camera.current = true
-	camera.position = Vector3(route_centers[0]) + Vector3(0.0, 4.1, 9.0)
+	if _uses_stylized_v18():
+		camera.position = Vector3(route_centers[0]) + Vector3(0.0, 3.5, 8.6)
+		orbit_pitch = 17.0
+		target_orbit_pitch = 17.0
+	else:
+		camera.position = Vector3(route_centers[0]) + Vector3(0.0, 4.1, 9.0)
 	add_child(camera)
 	camera.look_at(Vector3(route_centers[0]) + Vector3(0.0, 1.0, -1.0), Vector3.UP)
 	sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
-	sun.light_color = Color("e5dcff") if expedition_key == "crystal_forge" else Color("fff0d0")
-	sun.light_energy = 0.62 if _uses_production_material_lighting() else 0.94
+	if not _uses_stylized_v18():
+		sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
+		sun.light_color = Color("e5dcff") if expedition_key == "crystal_forge" else Color("fff0d0")
+		sun.light_energy = 0.62 if _uses_production_material_lighting() else 0.94
 	sun.shadow_enabled = quality_level >= 1
-	sun.directional_shadow_max_distance = 46.0
+	sun.directional_shadow_max_distance = 52.0 if _uses_stylized_v18() else 46.0
 	add_child(sun)
-	if quality_level >= 2:
+	if _uses_stylized_v18():
+		StylizedLighting.apply(self, environment, sky_material, sun, quality_level)
+	if quality_level >= 2 and not _uses_stylized_v18():
 		var rim := OmniLight3D.new()
 		rim.position = Vector3(-1.0, 5.0, -9.0)
 		rim.light_color = Color("9274ff")
@@ -365,18 +385,21 @@ func _build_sky_world() -> void:
 	backdrop.position = Vector3(0.0, 82.0, -285.0)
 	backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(backdrop)
-	var cloud_layout := [
-		[Vector3(-10.0, -0.5, -7.0), Vector3(5.0, 1.3, 2.3)],
-		[Vector3(8.0, 3.5, -13.0), Vector3(4.7, 1.2, 2.0)],
-		[Vector3(-8.0, 10.0, -27.0), Vector3(5.2, 1.4, 2.2)],
-		[Vector3(9.0, 16.0, -52.0), Vector3(5.8, 1.5, 2.4)],
-		[Vector3(-15.0, 24.0, -88.0), Vector3(6.4, 1.7, 2.7)],
-		[Vector3(13.0, 34.0, -145.0), Vector3(7.0, 1.8, 2.9)],
-		[Vector3(-18.0, 44.0, -205.0), Vector3(7.8, 2.0, 3.1)],
-	]
-	var cloud_count := 2 if quality_level == 0 else 4 if quality_level == 1 else cloud_layout.size()
-	for data in cloud_layout.slice(0, cloud_count):
-		_add_cloud(data[0], data[1])
+	if _uses_stylized_v18():
+		StylizedCloudGenerator.build_sky(self, quality_level, mats, random, Callable(self, "_mesh"), clouds)
+	else:
+		var cloud_layout := [
+			[Vector3(-10.0, -0.5, -7.0), Vector3(5.0, 1.3, 2.3)],
+			[Vector3(8.0, 3.5, -13.0), Vector3(4.7, 1.2, 2.0)],
+			[Vector3(-8.0, 10.0, -27.0), Vector3(5.2, 1.4, 2.2)],
+			[Vector3(9.0, 16.0, -52.0), Vector3(5.8, 1.5, 2.4)],
+			[Vector3(-15.0, 24.0, -88.0), Vector3(6.4, 1.7, 2.7)],
+			[Vector3(13.0, 34.0, -145.0), Vector3(7.0, 1.8, 2.9)],
+			[Vector3(-18.0, 44.0, -205.0), Vector3(7.8, 2.0, 3.1)],
+		]
+		var cloud_count := 2 if quality_level == 0 else 4 if quality_level == 1 else cloud_layout.size()
+		for data in cloud_layout.slice(0, cloud_count):
+			_add_cloud(data[0], data[1])
 	_add_sun_disc()
 
 
@@ -479,20 +502,40 @@ func _build_islands() -> void:
 			_add_arch(route_centers[i] + Vector3(arch_side * (route_radii[i] - 3.2), 1.3, 0.2), i)
 	# Distant silhouettes add depth without hovering directly above a playable
 	# island or being mistaken for the next destination.
-	_add_floating_island(Vector3(30.0, 15.0, -57.0), 4.6, 0.9, false, 11)
-	_add_floating_island(Vector3(-34.0, 25.0, -106.0), 5.2, 1.0, false, 12)
-	_add_floating_island(Vector3(37.0, 39.0, -176.0), 5.8, 1.1, false, 13)
-	_add_floating_island(Vector3(-38.0, 48.0, -236.0), 4.4, 0.9, false, 14)
+	if _uses_stylized_v18():
+		_add_floating_island(Vector3(14.0, 7.5, -30.0), 9.2, 1.2, false, 20)
+		_add_floating_island(Vector3(-20.0, 15.0, -82.0), 10.0, 1.3, false, 21)
+		_add_floating_island(Vector3(24.0, 24.0, -138.0), 9.8, 1.15, false, 22)
+		for data in [
+			[Vector3(32.0, 14.0, -52.0), 4.8, 0.85, 11],
+			[Vector3(-36.0, 23.0, -98.0), 5.4, 0.95, 12],
+			[Vector3(38.0, 36.0, -168.0), 5.9, 1.05, 13],
+			[Vector3(-40.0, 46.0, -228.0), 4.6, 0.88, 14],
+			[Vector3(8.0, 52.0, -198.0), 3.8, 0.75, 15],
+			[Vector3(-12.0, 38.0, -132.0), 4.2, 0.82, 16],
+			[Vector3(42.0, 28.0, -118.0), 4.0, 0.78, 17],
+			[Vector3(-28.0, 58.0, -248.0), 3.5, 0.72, 18],
+		]:
+			_add_floating_island(data[0], data[1], data[2], false, data[3])
+	else:
+		_add_floating_island(Vector3(30.0, 15.0, -57.0), 4.6, 0.9, false, 11)
+		_add_floating_island(Vector3(-34.0, 25.0, -106.0), 5.2, 1.0, false, 12)
+		_add_floating_island(Vector3(37.0, 39.0, -176.0), 5.8, 1.1, false, 13)
+		_add_floating_island(Vector3(-38.0, 48.0, -236.0), 4.4, 0.9, false, 14)
 	_add_airship(Vector3(-14.0, 12.0, -18.0), 0.0)
 	_add_airship(Vector3(24.0, 33.0, -142.0), 2.4)
 
 
+func _uses_stylized_v18() -> bool:
+	return USE_STYLIZED_V18 and expedition_key == "wolkengarten"
+
+
 func _uses_production_island_visual(island_index: int) -> bool:
-	return island_index == 0 and USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten"
+	return island_index == 0 and USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten" and not _uses_stylized_v18()
 
 
 func _uses_production_material_lighting() -> bool:
-	return USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten"
+	return USE_PRODUCTION_ISLAND_0 and expedition_key == "wolkengarten" and not _uses_stylized_v18()
 
 
 func _add_production_island_visual(root: Node3D, radius: float, thickness: float) -> void:
@@ -621,6 +664,8 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 	add_child(root)
 	if _uses_production_island_visual(island_index):
 		_add_production_island_visual(root, radius, thickness)
+	elif _uses_stylized_v18():
+		StylizedIslandGenerator.build(root, radius, thickness, playable, island_index, mats, quality_level, route_variant, Callable(self, "_mesh"))
 	else:
 		_build_procedural_island_geometry(root, radius, thickness, playable, island_index)
 	if playable:
@@ -642,6 +687,15 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 	add_child(root)
 	if _uses_production_island_visual(island_index):
 		_decorate_production_island_lite(root, island_index)
+		return
+	if _uses_stylized_v18():
+		var island_radius: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)])
+		if island_index == 0:
+			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius)
+		elif target_side:
+			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius)
+		else:
+			StylizedWorldDecorator.decorate_playable_island(root, island_index, mats, Callable(self, "_mesh"), random, island_radius)
 		return
 	# Tall silhouettes frame the island at the sides instead of obscuring the
 	# centre line used by the cannon and its camera.
@@ -703,7 +757,9 @@ func _add_biome_landmark(center: Vector3, island_index: int) -> void:
 		return
 	match island_index:
 		0:
-			if _uses_production_island_visual(0):
+			if _uses_stylized_v18():
+				_add_banner(root, Vector3(6.6, 0.0, 3.4), Color("7651e8"))
+			elif _uses_production_island_visual(0):
 				_add_banner(root, Vector3(6.6, 0.0, 3.4), Color("7651e8"))
 			else:
 				_add_windmill(root, Vector3(-6.8, 0.0, 4.0), 0.92)
@@ -1053,6 +1109,8 @@ func _set_default_ballistic_aim() -> void:
 
 
 func _create_cannon(node_name: String) -> Node3D:
+	if _uses_stylized_v18():
+		return _create_stylized_cannon(node_name)
 	var root := Node3D.new()
 	root.name = node_name
 	# Layered carriage: readable brass/stone silhouette instead of a stack of
@@ -1102,6 +1160,42 @@ func _create_cannon(node_name: String) -> Node3D:
 	glow_mesh.radius = 0.43
 	glow_mesh.height = 0.76
 	var glow := _mesh(pivot, glow_mesh, receiver_mat, Vector3(0, 0, -2.98), Vector3(1.0, 0.30, 1.0))
+	glow.name = "MuzzleGlow"
+	return root
+
+
+func _create_stylized_cannon(node_name: String) -> Node3D:
+	var root := Node3D.new()
+	root.name = node_name
+	_mesh(root, _cylinder(1.18, 0.22, 18), mats.stone_dark, Vector3(0, -0.48, 0))
+	_mesh(root, _cylinder(0.98, 0.28, 18), mats.brass, Vector3(0, -0.28, 0))
+	for corner in [Vector3(-0.72, -0.46, -0.58), Vector3(0.72, -0.46, -0.58), Vector3(-0.72, -0.46, 0.58), Vector3(0.72, -0.46, 0.58)]:
+		var foot := BoxMesh.new()
+		foot.size = Vector3(0.48, 0.22, 0.56)
+		_mesh(root, foot, mats.stone_main, corner)
+	var pivot := Node3D.new()
+	pivot.name = "AimPivot"
+	pivot.position = Vector3(0, 0.62, 0)
+	root.add_child(pivot)
+	var barrel := CylinderMesh.new()
+	barrel.top_radius = 0.52
+	barrel.bottom_radius = 0.68
+	barrel.height = 2.85
+	barrel.radial_segments = 16
+	_mesh(pivot, barrel, mats.cannon_dark, Vector3(0, 0, -1.28), Vector3.ONE, Vector3(90, 0, 0))
+	for z in [-0.08, -1.05, -2.35]:
+		_mesh(pivot, _cylinder(0.74, 0.16, 16), mats.brass, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0))
+	var muzzle_ring := TorusMesh.new()
+	muzzle_ring.inner_radius = 0.54
+	muzzle_ring.outer_radius = 0.74
+	muzzle_ring.rings = 16
+	muzzle_ring.ring_segments = 8
+	_mesh(pivot, muzzle_ring, mats.brass, Vector3(0, 0, -2.72), Vector3.ONE, Vector3(90, 0, 0))
+	var receiver_mat: Material = mats.portal if cannon_key == "portal" else mats.crystal_violet
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.38
+	glow_mesh.height = 0.68
+	var glow := _mesh(pivot, glow_mesh, receiver_mat, Vector3(0, 0, -2.78), Vector3(1.0, 0.28, 1.0))
 	glow.name = "MuzzleGlow"
 	return root
 
@@ -1275,19 +1369,22 @@ func _add_portals(a_pos: Vector3, b_pos: Vector3) -> void:
 		var root := Node3D.new()
 		root.position = pos
 		add_child(root)
-		var torus := TorusMesh.new()
-		torus.inner_radius = 1.0
-		torus.outer_radius = 1.28
-		torus.rings = 16
-		torus.ring_segments = 10
-		_mesh(root, torus, mats.violet, Vector3.ZERO, Vector3.ONE, Vector3(90, 0, 0))
-		var disc := CylinderMesh.new()
-		disc.top_radius = 0.95
-		disc.bottom_radius = 0.95
-		disc.height = 0.04
-		disc.radial_segments = 24
-		var portal_mat := _transparent_material(Color(0.3, 0.85, 1.0, 0.42))
-		_mesh(root, disc, portal_mat, Vector3.ZERO, Vector3.ONE, Vector3(90, 0, 0))
+		if _uses_stylized_v18():
+			StylizedPortalGenerator.build_portal(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers)
+		else:
+			var torus := TorusMesh.new()
+			torus.inner_radius = 1.0
+			torus.outer_radius = 1.28
+			torus.rings = 16
+			torus.ring_segments = 10
+			_mesh(root, torus, mats.violet, Vector3.ZERO, Vector3.ONE, Vector3(90, 0, 0))
+			var disc := CylinderMesh.new()
+			disc.top_radius = 0.95
+			disc.bottom_radius = 0.95
+			disc.height = 0.04
+			disc.radial_segments = 24
+			var portal_mat := _transparent_material(Color(0.3, 0.85, 1.0, 0.42))
+			_mesh(root, disc, portal_mat, Vector3.ZERO, Vector3.ONE, Vector3(90, 0, 0))
 		portal_pair.append(root)
 
 
@@ -2082,9 +2179,10 @@ func _update_camera(delta: float) -> void:
 		HopState.ON_FOOT:
 			var yaw := deg_to_rad(orbit_yaw)
 			var pitch := deg_to_rad(orbit_pitch)
-			var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 8.2
+			var orbit_distance := 9.0 if _uses_stylized_v18() else 8.2
+			var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * orbit_distance
 			desired = player.global_position + orbit_offset + Vector3(0, 1.2, 0)
-			look_target = player.global_position + Vector3(0, 0.75, 0)
+			look_target = player.global_position + Vector3(0, 0.65 if _uses_stylized_v18() else 0.75, -0.8 if _uses_stylized_v18() else 0.0)
 		HopState.ENTERING, HopState.AIMING:
 			var aim_dir := _aim_direction()
 			var shoulder_right := aim_dir.cross(Vector3.UP).normalized()
