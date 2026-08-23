@@ -24,7 +24,7 @@ static func build_portal(
 	ring.outer_radius = 1.22
 	ring.rings = 20
 	ring.ring_segments = 10
-	var outer := mesh_fn.call(root, ring, mats.get("portal", mats.violet), Vector3(0, 1.65, 0), Vector3.ONE, Vector3(90, 0, 0))
+	var outer: MeshInstance3D = mesh_fn.call(root, ring, mats.get("portal", mats.violet), Vector3(0, 1.65, 0), Vector3.ONE, Vector3(90, 0, 0))
 	outer.set_meta("animate_portal", true)
 	animated_nodes.append(outer)
 	var inner := TorusMesh.new()
@@ -32,7 +32,7 @@ static func build_portal(
 	inner.outer_radius = 0.86
 	inner.rings = 18
 	inner.ring_segments = 8
-	var inner_ring := mesh_fn.call(root, inner, mats.get("crystal_violet", mats.crystal), Vector3(0, 1.65, -0.05), Vector3.ONE, Vector3(90, 0, 0))
+	var inner_ring: MeshInstance3D = mesh_fn.call(root, inner, mats.get("crystal_violet", mats.crystal), Vector3(0, 1.65, -0.05), Vector3.ONE, Vector3(90, 0, 0))
 	inner_ring.set_meta("animate_portal", true)
 	animated_nodes.append(inner_ring)
 	var disc := CylinderMesh.new()

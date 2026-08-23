@@ -372,19 +372,20 @@ func _build_environment() -> void:
 
 
 func _build_sky_world() -> void:
-	var quad := QuadMesh.new()
-	quad.size = Vector2(190.0, 330.0)
-	var sky_mat := StandardMaterial3D.new()
-	sky_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sky_mat.albedo_texture = load("res://art/generated/sky_route_backdrop_v10.png")
-	sky_mat.albedo_color = Color(0.72, 0.82, 1.0, 1.0) if expedition_key == "crystal_forge" else Color(0.92, 0.96, 1.0, 1.0)
-	sky_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	quad.material = sky_mat
-	var backdrop := MeshInstance3D.new()
-	backdrop.mesh = quad
-	backdrop.position = Vector3(0.0, 82.0, -285.0)
-	backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(backdrop)
+	if not _uses_stylized_v18():
+		var quad := QuadMesh.new()
+		quad.size = Vector2(190.0, 330.0)
+		var sky_mat := StandardMaterial3D.new()
+		sky_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sky_mat.albedo_texture = load("res://art/generated/sky_route_backdrop_v10.png")
+		sky_mat.albedo_color = Color(0.72, 0.82, 1.0, 1.0) if expedition_key == "crystal_forge" else Color(0.92, 0.96, 1.0, 1.0)
+		sky_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		quad.material = sky_mat
+		var backdrop := MeshInstance3D.new()
+		backdrop.mesh = quad
+		backdrop.position = Vector3(0.0, 82.0, -285.0)
+		backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(backdrop)
 	if _uses_stylized_v18():
 		StylizedCloudGenerator.build_sky(self, quality_level, mats, random, Callable(self, "_mesh"), clouds)
 	else:
