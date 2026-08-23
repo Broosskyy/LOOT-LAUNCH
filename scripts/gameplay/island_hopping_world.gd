@@ -168,6 +168,8 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 		expedition_key = "wolkengarten"
 		route_centers = ROUTE_CENTERS.duplicate()
 		route_radii = ROUTE_RADII.duplicate()
+		if USE_STYLIZED_V18:
+			route_radii[0] = 10.4
 	lootling_key = selected_lootling
 	cannon_key = selected_cannon
 	ability_charges = 2 if cannon_key == "portal" else 1
@@ -188,6 +190,8 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	_build_target_contents()
 	_build_trajectory()
 	_set_state(HopState.ON_FOOT)
+	if _uses_stylized_v18():
+		call_deferred("_apply_stylized_start_camera")
 	instruction_changed.emit(("KRISTALLSCHMIEDE" if expedition_key == "crystal_forge" else "WOLKENGARTEN") + "  •  ERKUNDE 6 INSELN  •  LAUFE ZUR KANONE")
 	_update_action_prompt()
 	if is_pvp:
@@ -266,7 +270,7 @@ func _configure_solid_materials() -> void:
 		"rock", "rock_mid", "rock_dark", "cliff_warm", "grass", "grass_light",
 		"grass_gold", "grass_mint", "grass_blue", "grass_lilac", "grass_amber",
 		"grass_royal", "edge_moss", "grass_main", "grass_dark", "stone_main",
-		"stone_dark", "stone_light", "dirt", "leaf_green",
+		"stone_dark", "stone_light", "dirt", "leaf_green", "distant_grass",
 	]
 	for key in mats.keys():
 		var material := mats[key] as StandardMaterial3D
@@ -274,6 +278,12 @@ func _configure_solid_materials() -> void:
 			continue
 		material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 		material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
+		if _uses_stylized_v18() and key in [
+			"stone_main", "stone_dark", "stone_light", "path_stone", "distant_rock", "brass", "wood", "wood_light", "cannon_dark"
+		]:
+			material.vertex_color_use_as_albedo = false
+			material.cull_mode = BaseMaterial3D.CULL_DISABLED
+			continue
 		material.vertex_color_use_as_albedo = true
 		if key in double_sided:
 			material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -345,13 +355,13 @@ func _build_environment() -> void:
 	camera.far = 340.0
 	camera.current = true
 	if _uses_stylized_v18():
-		camera.position = Vector3(route_centers[0]) + Vector3(0.0, 3.5, 8.6)
-		orbit_pitch = 17.0
-		target_orbit_pitch = 17.0
+		camera.position = Vector3(route_centers[0]) + Vector3(0.0, 5.0, 11.5)
+		_apply_stylized_start_camera()
 	else:
 		camera.position = Vector3(route_centers[0]) + Vector3(0.0, 4.1, 9.0)
 	add_child(camera)
-	camera.look_at(Vector3(route_centers[0]) + Vector3(0.0, 1.0, -1.0), Vector3.UP)
+	if not _uses_stylized_v18():
+		camera.look_at(Vector3(route_centers[0]) + Vector3(0.0, 1.0, -1.0), Vector3.UP)
 	sun = DirectionalLight3D.new()
 	if not _uses_stylized_v18():
 		sun.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
@@ -504,18 +514,18 @@ func _build_islands() -> void:
 	# Distant silhouettes add depth without hovering directly above a playable
 	# island or being mistaken for the next destination.
 	if _uses_stylized_v18():
-		_add_floating_island(Vector3(14.0, 7.5, -30.0), 9.2, 1.2, false, 20)
-		_add_floating_island(Vector3(-20.0, 15.0, -82.0), 10.0, 1.3, false, 21)
-		_add_floating_island(Vector3(24.0, 24.0, -138.0), 9.8, 1.15, false, 22)
+		_add_floating_island(Vector3(-12.0, 4.0, -22.0), 7.2, 1.0, false, 20)
+		_add_floating_island(Vector3(14.0, 6.0, -28.0), 7.8, 1.05, false, 21)
+		_add_floating_island(Vector3(2.0, 8.0, -48.0), 8.8, 1.15, false, 22)
 		for data in [
-			[Vector3(32.0, 14.0, -52.0), 4.8, 0.85, 11],
-			[Vector3(-36.0, 23.0, -98.0), 5.4, 0.95, 12],
-			[Vector3(38.0, 36.0, -168.0), 5.9, 1.05, 13],
-			[Vector3(-40.0, 46.0, -228.0), 4.6, 0.88, 14],
-			[Vector3(8.0, 52.0, -198.0), 3.8, 0.75, 15],
-			[Vector3(-12.0, 38.0, -132.0), 4.2, 0.82, 16],
-			[Vector3(42.0, 28.0, -118.0), 4.0, 0.78, 17],
-			[Vector3(-28.0, 58.0, -248.0), 3.5, 0.72, 18],
+			[Vector3(-22.0, 7.0, -38.0), 5.4, 0.82, 11],
+			[Vector3(26.0, 9.0, -44.0), 5.8, 0.86, 12],
+			[Vector3(-16.0, 12.0, -72.0), 6.2, 0.9, 13],
+			[Vector3(20.0, 14.0, -88.0), 5.6, 0.84, 14],
+			[Vector3(-28.0, 18.0, -118.0), 5.0, 0.78, 15],
+			[Vector3(10.0, 20.0, -138.0), 4.6, 0.74, 16],
+			[Vector3(-6.0, 24.0, -168.0), 4.2, 0.72, 17],
+			[Vector3(24.0, 22.0, -188.0), 3.8, 0.7, 18],
 		]:
 			_add_floating_island(data[0], data[1], data[2], false, data[3])
 	else:
@@ -529,6 +539,29 @@ func _build_islands() -> void:
 
 func _uses_stylized_v18() -> bool:
 	return USE_STYLIZED_V18 and expedition_key == "wolkengarten"
+
+
+func _apply_stylized_start_camera() -> void:
+	if camera == null or player == null:
+		return
+	var from: Vector3 = Vector3(route_centers[0])
+	var to: Vector3 = Vector3(route_centers[1])
+	var forward: Vector3 = to - from
+	forward.y = 0.0
+	if forward.length_squared() > 0.01:
+		forward = forward.normalized()
+		orbit_yaw = rad_to_deg(atan2(forward.x, -forward.z))
+		target_orbit_yaw = orbit_yaw
+	orbit_pitch = 24.0
+	target_orbit_pitch = 24.0
+	camera.fov = 51.0
+	var look_ahead: Vector3 = player.global_position.lerp(to, 0.52)
+	look_ahead.y = player.global_position.y + 2.4
+	var yaw := deg_to_rad(orbit_yaw)
+	var pitch := deg_to_rad(orbit_pitch)
+	var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 14.8
+	camera.global_position = player.global_position + orbit_offset + Vector3(0, 1.55, 0)
+	camera.look_at(look_ahead, Vector3.UP)
 
 
 func _uses_production_island_visual(island_index: int) -> bool:
@@ -693,6 +726,8 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 		var island_radius: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)])
 		if island_index == 0:
 			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius)
+		elif island_index == 1:
+			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers)
 		elif target_side:
 			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius)
 		else:
@@ -1085,10 +1120,11 @@ func _activate_route_cannon(index: int) -> void:
 	loaded_lootling.visible = false
 	cannon_pivot.add_child(loaded_lootling)
 	loaded_lootling.position = Vector3(0.0, 0.0, -1.15)
-	for z in [-0.55, -1.25, -1.95]:
-		var coil := TorusMesh.new()
-		coil.inner_radius = 0.68; coil.outer_radius = 0.76; coil.rings = 16; coil.ring_segments = 8
-		charge_rings.append(_mesh(cannon_pivot, coil, mats.violet, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0)))
+	if not _uses_stylized_v18():
+		for z in [-0.55, -1.25, -1.95]:
+			var coil := TorusMesh.new()
+			coil.inner_radius = 0.68; coil.outer_radius = 0.76; coil.rings = 16; coil.ring_segments = 8
+			charge_rings.append(_mesh(cannon_pivot, coil, mats.violet, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0)))
 	_set_default_ballistic_aim()
 	_update_cannon_direction()
 
@@ -1168,35 +1204,36 @@ func _create_cannon(node_name: String) -> Node3D:
 func _create_stylized_cannon(node_name: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = node_name
-	_mesh(root, _cylinder(1.18, 0.22, 18), mats.stone_dark, Vector3(0, -0.48, 0))
-	_mesh(root, _cylinder(0.98, 0.28, 18), mats.brass, Vector3(0, -0.28, 0))
-	for corner in [Vector3(-0.72, -0.46, -0.58), Vector3(0.72, -0.46, -0.58), Vector3(-0.72, -0.46, 0.58), Vector3(0.72, -0.46, 0.58)]:
+	_mesh(root, _cylinder(1.35, 0.18, 18), mats.stone_dark, Vector3(0, -0.42, 0))
+	_mesh(root, _cylinder(1.05, 0.24, 18), mats.stone_main, Vector3(0, -0.24, 0))
+	_mesh(root, _cylinder(0.88, 0.14, 18), mats.brass, Vector3(0, -0.06, 0))
+	for corner in [Vector3(-0.78, -0.4, -0.62), Vector3(0.78, -0.4, -0.62), Vector3(-0.78, -0.4, 0.62), Vector3(0.78, -0.4, 0.62)]:
 		var foot := BoxMesh.new()
-		foot.size = Vector3(0.48, 0.22, 0.56)
+		foot.size = Vector3(0.52, 0.18, 0.58)
 		_mesh(root, foot, mats.stone_main, corner)
 	var pivot := Node3D.new()
 	pivot.name = "AimPivot"
-	pivot.position = Vector3(0, 0.62, 0)
+	pivot.position = Vector3(0, 0.58, 0)
 	root.add_child(pivot)
 	var barrel := CylinderMesh.new()
-	barrel.top_radius = 0.52
-	barrel.bottom_radius = 0.68
-	barrel.height = 2.85
+	barrel.top_radius = 0.48
+	barrel.bottom_radius = 0.66
+	barrel.height = 3.05
 	barrel.radial_segments = 16
-	_mesh(pivot, barrel, mats.cannon_dark, Vector3(0, 0, -1.28), Vector3.ONE, Vector3(90, 0, 0))
-	for z in [-0.08, -1.05, -2.35]:
-		_mesh(pivot, _cylinder(0.74, 0.16, 16), mats.brass, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0))
+	_mesh(pivot, barrel, mats.cannon_dark, Vector3(0, 0, -1.42), Vector3.ONE, Vector3(90, 0, 0))
+	for z in [-0.05, -1.12, -2.48]:
+		_mesh(pivot, _cylinder(0.78, 0.17, 16), mats.brass, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0))
 	var muzzle_ring := TorusMesh.new()
-	muzzle_ring.inner_radius = 0.54
-	muzzle_ring.outer_radius = 0.74
+	muzzle_ring.inner_radius = 0.58
+	muzzle_ring.outer_radius = 0.78
 	muzzle_ring.rings = 16
 	muzzle_ring.ring_segments = 8
-	_mesh(pivot, muzzle_ring, mats.brass, Vector3(0, 0, -2.72), Vector3.ONE, Vector3(90, 0, 0))
+	_mesh(pivot, muzzle_ring, mats.brass, Vector3(0, 0, -2.86), Vector3.ONE, Vector3(90, 0, 0))
 	var receiver_mat: Material = mats.portal if cannon_key == "portal" else mats.crystal_violet
 	var glow_mesh := SphereMesh.new()
-	glow_mesh.radius = 0.38
-	glow_mesh.height = 0.68
-	var glow := _mesh(pivot, glow_mesh, receiver_mat, Vector3(0, 0, -2.78), Vector3(1.0, 0.28, 1.0))
+	glow_mesh.radius = 0.34
+	glow_mesh.height = 0.62
+	var glow := _mesh(pivot, glow_mesh, receiver_mat, Vector3(0, 0, -2.92), Vector3(1.0, 0.26, 1.0))
 	glow.name = "MuzzleGlow"
 	return root
 
@@ -1303,22 +1340,43 @@ func _build_route() -> void:
 		# one risk crystal per hop, while their positions rotate with the seed.
 		var risk_patterns := [[1, 4, 5], [0, 3, 5], [2, 5, 6]]
 		var active_risks: Array = risk_patterns[(route_variant + route_index) % risk_patterns.size()]
-		for i in range(7):
-			var time := contact_time * float(i + 1) / 8.0
-			var pos := origin + velocity * time + Vector3.DOWN * (0.5 * GRAVITY * time * time)
-			var risk := i in active_risks
-			var lane_offset := (2.0 + route_index * 0.18) * (-1.0 if i % 2 == 0 else 1.0) if risk else sin(float(i) * 0.8 + route_index) * 0.18
-			pos += route_right * lane_offset
-			var kind := "crystal" if i == 5 else "coin"
-			var value := 1 if kind == "crystal" else 25 if risk else 15
-			_add_flight_pickup(pos, kind, value, risk, route_index)
+		if _uses_stylized_v18() and route_index == 0:
+			var from_center: Vector3 = Vector3(route_centers[0])
+			var to_center: Vector3 = Vector3(route_centers[1])
+			for i in range(7):
+				var t: float = float(i + 1) / 8.0
+				var pos: Vector3 = from_center.lerp(to_center, t * 0.62)
+				pos.y = from_center.y + 2.2 + sin(t * PI) * 1.6
+				var risk: bool = i in active_risks
+				var lane_offset: float = sin(float(i) * 1.1 + route_index) * 0.35
+				pos.x += lane_offset
+				var kind: String = "crystal" if i == 5 else "coin"
+				var value: int = 1 if kind == "crystal" else 25 if risk else 15
+				_add_flight_pickup(pos, kind, value, risk, route_index)
+		else:
+			for i in range(7):
+				var time := contact_time * float(i + 1) / 8.0
+				var pos := origin + velocity * time + Vector3.DOWN * (0.5 * GRAVITY * time * time)
+				var risk := i in active_risks
+				var lane_offset := (2.0 + route_index * 0.18) * (-1.0 if i % 2 == 0 else 1.0) if risk else sin(float(i) * 0.8 + route_index) * 0.18
+				pos += route_right * lane_offset
+				var kind := "crystal" if i == 5 else "coin"
+				var value := 1 if kind == "crystal" else 25 if risk else 15
+				_add_flight_pickup(pos, kind, value, risk, route_index)
 		var feature_time := contact_time * 0.58
 		var feature_center := origin + velocity * feature_time + Vector3.DOWN * (0.5 * GRAVITY * feature_time * feature_time)
 		_add_booster(feature_center + route_right * (3.5 if (route_variant + route_index) % 2 == 0 else -3.5), route_index)
 		_add_moving_obstacle(feature_center + route_right * (-4.4 if route_index % 2 == 0 else 4.4), route_right, route_index)
 	var first_center: Vector3 = Vector3(route_centers[0])
 	var second_center: Vector3 = Vector3(route_centers[1])
-	_add_portals(first_center.lerp(second_center, 0.38) + Vector3(2.6, 4.8, 0), second_center.lerp(first_center, 0.24) + Vector3(-2.4, 4.2, 0))
+	if _uses_stylized_v18():
+		if route_centers.size() >= 4:
+			_add_portals(
+				Vector3(route_centers[2]) + Vector3(0.0, 1.2, 4.5),
+				Vector3(route_centers[3]) + Vector3(0.0, 1.2, 3.8)
+			)
+	else:
+		_add_portals(first_center.lerp(second_center, 0.38) + Vector3(2.6, 4.8, 0), second_center.lerp(first_center, 0.24) + Vector3(-2.4, 4.2, 0))
 
 
 func _add_booster(pos: Vector3, route_index: int) -> void:
@@ -2178,12 +2236,23 @@ func _update_camera(delta: float) -> void:
 	var desired_fov := 61.0
 	match hop_state:
 		HopState.ON_FOOT:
-			var yaw := deg_to_rad(orbit_yaw)
-			var pitch := deg_to_rad(orbit_pitch)
-			var orbit_distance := 9.0 if _uses_stylized_v18() else 8.2
-			var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * orbit_distance
-			desired = player.global_position + orbit_offset + Vector3(0, 1.2, 0)
-			look_target = player.global_position + Vector3(0, 0.65 if _uses_stylized_v18() else 0.75, -0.8 if _uses_stylized_v18() else 0.0)
+			if _uses_stylized_v18():
+				var yaw := deg_to_rad(orbit_yaw)
+				var pitch := deg_to_rad(orbit_pitch)
+				var orbit_distance := 14.8
+				var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * orbit_distance
+				desired = player.global_position + orbit_offset + Vector3(0, 1.55, 0)
+				var look_ahead: Vector3 = player.global_position.lerp(Vector3(route_centers[mini(current_island_index + 1, route_centers.size() - 1)]), 0.52)
+				look_target = look_ahead
+				look_target.y = player.global_position.y + 2.4
+				desired_fov = 51.0
+			else:
+				var yaw := deg_to_rad(orbit_yaw)
+				var pitch := deg_to_rad(orbit_pitch)
+				var orbit_distance := 8.2
+				var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * orbit_distance
+				desired = player.global_position + orbit_offset + Vector3(0, 1.2, 0)
+				look_target = player.global_position + Vector3(0, 0.75, 0)
 		HopState.ENTERING, HopState.AIMING:
 			var aim_dir := _aim_direction()
 			var shoulder_right := aim_dir.cross(Vector3.UP).normalized()

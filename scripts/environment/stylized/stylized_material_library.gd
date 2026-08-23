@@ -1,7 +1,9 @@
 extends RefCounted
 class_name StylizedMaterialLibrary
 
-## V18 stylized palette — flat colors, high roughness, emission only on magic.
+const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+
+## V18.2 reference-matched palette — muted greens, warm stone, readable cliffs.
 
 
 static func apply_palette(
@@ -9,25 +11,32 @@ static func apply_palette(
 	material_fn: Callable,
 	transparent_fn: Callable
 ) -> void:
-	mats["grass_main"] = material_fn.call(Color("5fd46a"), 0.88, 0.0)
-	mats["grass_light"] = material_fn.call(Color("8fe878"), 0.82, 0.0)
-	mats["grass_dark"] = material_fn.call(Color("3faa52"), 0.90, 0.0)
-	mats["stone_main"] = material_fn.call(Color("6f6d78"), 0.92, 0.0)
-	mats["stone_dark"] = material_fn.call(Color("4a4854"), 0.95, 0.0)
-	mats["stone_light"] = material_fn.call(Color("8f8c98"), 0.86, 0.0)
-	mats["dirt"] = material_fn.call(Color("7a5d45"), 0.94, 0.0)
-	mats["wood"] = material_fn.call(Color("8a5530"), 0.84, 0.0)
-	mats["wood_light"] = material_fn.call(Color("b87442"), 0.78, 0.0)
-	mats["brass"] = material_fn.call(Color("dca64c"), 0.28, 0.78)
-	mats["cannon_dark"] = material_fn.call(Color("2a2838"), 0.32, 0.68)
-	mats["crystal_violet"] = material_fn.call(Color("9b5cff"), 0.18, 0.12, Color("7a42e8"), 0.55)
-	mats["crystal_blue"] = material_fn.call(Color("5ec8ff"), 0.16, 0.10, Color("35a8f0"), 0.45)
-	mats["portal"] = material_fn.call(Color("8f4dff"), 0.22, 0.14, Color("6b2fe8"), 0.62)
-	mats["flower_pink"] = material_fn.call(Color("ff8cca"), 0.42, 0.0, Color("e34d9c"), 0.18)
-	mats["flower_white"] = material_fn.call(Color("fff5ef"), 0.48, 0.0)
-	mats["leaf_green"] = material_fn.call(Color("4fbf62"), 0.80, 0.0)
-	mats["coin"] = material_fn.call(Color("ffd44d"), 0.18, 0.82, Color("ffba20"), 0.35)
-	mats["cloud_soft"] = material_fn.call(Color("f4f8ff"), 1.0, 0.0)
+	mats["grass_main"] = StylizedTypedAccess.opaque_material(material_fn, Color("52a862"), 0.9, 0.0)
+	mats["grass_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("74c97a"), 0.86, 0.0)
+	mats["grass_dark"] = StylizedTypedAccess.opaque_material(material_fn, Color("3f9f57"), 0.92, 0.0)
+	mats["stone_main"] = StylizedTypedAccess.opaque_material(material_fn, Color("8a868f"), 0.9, 0.0)
+	mats["stone_dark"] = StylizedTypedAccess.opaque_material(material_fn, Color("6f6b74"), 0.92, 0.0)
+	mats["stone_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("b7b0a6"), 0.84, 0.0)
+	mats["path_stone"] = StylizedTypedAccess.opaque_material(material_fn, Color("b5a898"), 0.88, 0.0)
+	mats["dirt"] = StylizedTypedAccess.opaque_material(material_fn, Color("7a5d45"), 0.94, 0.0)
+	mats["wood"] = StylizedTypedAccess.opaque_material(material_fn, Color("6a4228"), 0.86, 0.0)
+	mats["wood_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("9a5f36"), 0.8, 0.0)
+	mats["brass"] = StylizedTypedAccess.opaque_material(material_fn, Color("c99a3f"), 0.3, 0.72)
+	mats["cannon_dark"] = StylizedTypedAccess.opaque_material(material_fn, Color("2f2d3a"), 0.34, 0.62)
+	mats["crystal_violet"] = StylizedTypedAccess.opaque_material(material_fn, Color("9b5cff"), 0.2, 0.1, Color("7a42e8"), 0.48)
+	mats["crystal_blue"] = StylizedTypedAccess.opaque_material(material_fn, Color("5ec8ff"), 0.18, 0.08, Color("35a8f0"), 0.38)
+	mats["portal"] = StylizedTypedAccess.opaque_material(material_fn, Color("8f4dff"), 0.22, 0.12, Color("6b2fe8"), 0.72)
+	mats["flower_pink"] = StylizedTypedAccess.opaque_material(material_fn, Color("f08cbc"), 0.44, 0.0, Color("d85f9d"), 0.12)
+	mats["flower_white"] = StylizedTypedAccess.opaque_material(material_fn, Color("fff5ef"), 0.48, 0.0)
+	mats["leaf_green"] = StylizedTypedAccess.opaque_material(material_fn, Color("4aab5d"), 0.82, 0.0)
+	mats["coin"] = StylizedTypedAccess.opaque_material(material_fn, Color("e8b840"), 0.2, 0.78, Color("d9a020"), 0.28)
+	mats["cloud_soft"] = StylizedTypedAccess.opaque_material(material_fn, Color("f6f9ff"), 1.0, 0.0)
+	mats["cloud_mid"] = StylizedTypedAccess.opaque_material(material_fn, Color("eef4ff"), 1.0, 0.0)
+	mats["distant_grass"] = StylizedTypedAccess.opaque_material(material_fn, Color("6a9f78"), 0.92, 0.0)
+	mats["distant_rock"] = StylizedTypedAccess.opaque_material(material_fn, Color("9aa0ad"), 0.94, 0.0)
+	mats["bouncer"] = StylizedTypedAccess.opaque_material(material_fn, Color("f0a878"), 0.46, 0.02, Color("e88958"), 0.08)
+	mats["cheek"] = StylizedTypedAccess.opaque_material(material_fn, Color("ff96aa"), 0.5, 0.0)
+	_configure_stylized_surface_flags(mats)
 	# Remap legacy keys used across world systems.
 	mats["grass"] = mats["grass_main"]
 	mats["grass_mint"] = mats["grass_light"]
@@ -44,6 +53,18 @@ static func apply_palette(
 	mats["crystal"] = mats["crystal_violet"]
 	mats["violet"] = mats["portal"]
 	mats["white"] = mats["stone_light"]
-	mats["wood_light"] = mats["wood_light"]
 	mats["cannon"] = mats["cannon_dark"]
-	mats["cloud"] = transparent_fn.call(Color(0.96, 0.98, 1.0, 0.55))
+	mats["cloud"] = StylizedTypedAccess.opaque_material(material_fn, Color("f2f6ff"), 1.0, 0.0)
+
+
+static func _configure_stylized_surface_flags(mats: Dictionary) -> void:
+	var grass_keys: Array[String] = ["grass_main", "grass_light", "grass_dark", "distant_grass"]
+	var stone_keys: Array[String] = ["stone_main", "stone_dark", "stone_light", "path_stone", "distant_rock"]
+	for key in grass_keys:
+		var grass_mat: StandardMaterial3D = mats[key] as StandardMaterial3D
+		grass_mat.vertex_color_use_as_albedo = true
+		grass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for key in stone_keys:
+		var stone_mat: StandardMaterial3D = mats[key] as StandardMaterial3D
+		stone_mat.vertex_color_use_as_albedo = false
+		stone_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
