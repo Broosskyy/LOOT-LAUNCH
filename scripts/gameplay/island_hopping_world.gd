@@ -51,12 +51,13 @@ const MIN_PITCH := 18.0
 const MAX_PITCH := 48.0
 const USE_STYLIZED_V18 := true
 const USE_PRODUCTION_ISLAND_0 := false
-const STYLIZED_CAMERA_DISTANCE := 14.8
-const STYLIZED_CAMERA_PITCH := 24.0
 const STYLIZED_CAMERA_FOV := 51.0
-const STYLIZED_CAMERA_HEIGHT_OFFSET := 1.55
-const STYLIZED_LOOK_HEIGHT_OFFSET := 2.4
-const STYLIZED_LOOK_AHEAD_BLEND := 0.52
+const STYLIZED_CAMERA_PITCH := 21.0
+const STYLIZED_CAMERA_LOOK_HEIGHT := 0.62
+const STYLIZED_CAMERA_LOOK_AHEAD := 2.8
+const STYLIZED_CAMERA_FOLLOW_DISTANCE := 7.9
+const STYLIZED_CAMERA_FOLLOW_HEIGHT := 3.55
+const STYLIZED_CAMERA_DISTANCE := STYLIZED_CAMERA_FOLLOW_DISTANCE
 const ProductionAsset = preload("res://scripts/environment/production_asset.gd")
 const StylizedMaterialLibrary = preload("res://scripts/environment/stylized/stylized_material_library.gd")
 const StylizedLighting = preload("res://scripts/environment/stylized/stylized_lighting.gd")
@@ -113,7 +114,8 @@ var orbit_yaw := 0.0
 var orbit_pitch := 20.0
 var target_orbit_yaw := 0.0
 var target_orbit_pitch := 20.0
-var _camera_snap_pending := false
+var camera_bootstrapped := false
+var camera_orbit_pointer := -999
 var trail_timer := 0.0
 var random := RandomNumberGenerator.new()
 var quality_level := 2
@@ -186,6 +188,8 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	effect_density = [0.55, 0.78, 1.0, 1.22][quality_level]
 	random.seed = int(value.get("seed", 7331)) + number * 97
 	route_variant = abs(int(value.get("seed", 7331)) + number) % 3
+	camera_bootstrapped = false
+	_reset_gameplay_input_state()
 	_build_materials()
 	_build_environment()
 	_build_sky_world()
@@ -198,7 +202,7 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	_build_trajectory()
 	_set_state(HopState.ON_FOOT)
 	if _uses_stylized_v18():
-		apply_gameplay_camera_state(true)
+		bootstrap_gameplay_camera()
 	instruction_changed.emit(("KRISTALLSCHMIEDE" if expedition_key == "crystal_forge" else "WOLKENGARTEN") + "  •  ERKUNDE 6 INSELN  •  LAUFE ZUR KANONE")
 	_update_action_prompt()
 	if is_pvp:
@@ -538,11 +542,30 @@ func _uses_stylized_v18() -> bool:
 	return USE_STYLIZED_V18 and expedition_key == "wolkengarten"
 
 
+func _reset_gameplay_input_state() -> void:
+	active_pointer = -999
+	camera_orbit_pointer = -999
+	move_input = Vector2.ZERO
+	keyboard_move = Vector2.ZERO
+	gesture_start = Vector2.ZERO
+	gesture_last = Vector2.ZERO
+	gesture_distance = 0.0
+
+
+func _orbit_forward_horizontal() -> Vector3:
+	var yaw_rad := deg_to_rad(orbit_yaw)
+	return Vector3(sin(yaw_rad), 0.0, -cos(yaw_rad)).normalized()
+
+
 func _gameplay_camera_yaw_from_route() -> float:
-	var next_index: int = mini(current_island_index + 1, route_centers.size() - 1)
-	var from: Vector3 = player.global_position if player != null else Vector3(route_centers[current_island_index])
-	var to: Vector3 = Vector3(route_centers[next_index])
-	var forward: Vector3 = to - from
+	if player == null:
+		return orbit_yaw
+	var to: Vector3
+	if is_instance_valid(cannon_root):
+		to = cannon_root.global_position
+	else:
+		to = Vector3(route_centers[mini(current_island_index + 1, route_centers.size() - 1)])
+	var forward: Vector3 = to - player.global_position
 	forward.y = 0.0
 	if forward.length_squared() < 0.01:
 		return orbit_yaw
@@ -551,41 +574,110 @@ func _gameplay_camera_yaw_from_route() -> float:
 
 
 func _compute_stylized_camera_pose() -> Dictionary:
-	var yaw := deg_to_rad(orbit_yaw)
-	var pitch := deg_to_rad(orbit_pitch)
-	var orbit_offset := Vector3(
-		sin(yaw) * cos(pitch),
-		sin(pitch),
-		cos(yaw) * cos(pitch)
-	) * STYLIZED_CAMERA_DISTANCE
-	var position: Vector3 = player.global_position + orbit_offset + Vector3(0.0, STYLIZED_CAMERA_HEIGHT_OFFSET, 0.0)
-	var next_center: Vector3 = Vector3(route_centers[mini(current_island_index + 1, route_centers.size() - 1)])
-	var look_target: Vector3 = player.global_position.lerp(next_center, STYLIZED_LOOK_AHEAD_BLEND)
-	look_target.y = player.global_position.y + STYLIZED_LOOK_HEIGHT_OFFSET
+	var forward: Vector3 = _orbit_forward_horizontal()
+	var pitch_offset: float = (orbit_pitch - STYLIZED_CAMERA_PITCH) * 0.12
+	var look_target: Vector3 = (
+		player.global_position
+		+ Vector3.UP * STYLIZED_CAMERA_LOOK_HEIGHT
+		+ forward * STYLIZED_CAMERA_LOOK_AHEAD
+	)
+	var position: Vector3 = (
+		look_target
+		- forward * STYLIZED_CAMERA_FOLLOW_DISTANCE
+		+ Vector3.UP * (STYLIZED_CAMERA_FOLLOW_HEIGHT + pitch_offset)
+	)
 	return {
 		"position": position,
 		"look_target": look_target,
 		"fov": STYLIZED_CAMERA_FOV,
-		"distance": STYLIZED_CAMERA_DISTANCE,
+		"forward": forward,
+		"distance": STYLIZED_CAMERA_FOLLOW_DISTANCE,
 		"pitch": orbit_pitch,
 		"yaw": orbit_yaw,
 	}
 
 
-func apply_gameplay_camera_state(snap: bool = false) -> void:
-	if not _uses_stylized_v18() or camera == null or player == null:
+func _apply_gameplay_camera_pose_immediate() -> void:
+	if camera == null or player == null:
 		return
-	var yaw: float = _gameplay_camera_yaw_from_route()
-	orbit_yaw = yaw
-	target_orbit_yaw = yaw
+	var pose: Dictionary = _compute_stylized_camera_pose()
+	camera.global_position = pose.position
+	camera.fov = STYLIZED_CAMERA_FOV
+	camera.look_at(pose.look_target, Vector3.UP)
+	camera.rotation.z = 0.0
+
+
+func bootstrap_gameplay_camera() -> void:
+	if not _uses_stylized_v18() or camera == null or player == null:
+		camera_bootstrapped = true
+		return
+	orbit_yaw = _gameplay_camera_yaw_from_route()
+	target_orbit_yaw = orbit_yaw
 	orbit_pitch = STYLIZED_CAMERA_PITCH
 	target_orbit_pitch = STYLIZED_CAMERA_PITCH
-	camera.fov = STYLIZED_CAMERA_FOV
-	if snap:
-		_camera_snap_pending = true
-		var pose: Dictionary = _compute_stylized_camera_pose()
-		camera.global_position = pose.position
-		camera.look_at(pose.look_target, Vector3.UP)
+	_apply_gameplay_camera_pose_immediate()
+	camera_bootstrapped = true
+
+
+func apply_gameplay_camera_state(_snap: bool = false) -> void:
+	bootstrap_gameplay_camera()
+
+
+func _camera_movement_basis() -> Dictionary:
+	if camera == null:
+		var fallback: Vector3 = _orbit_forward_horizontal()
+		return {"forward": fallback, "right": Vector3(fallback.z, 0.0, -fallback.x).normalized()}
+	var camera_forward: Vector3 = -camera.global_transform.basis.z
+	camera_forward.y = 0.0
+	if camera_forward.length_squared() < 0.0001:
+		camera_forward = _orbit_forward_horizontal()
+	else:
+		camera_forward = camera_forward.normalized()
+	var camera_right: Vector3 = camera.global_transform.basis.x
+	camera_right.y = 0.0
+	if camera_right.length_squared() < 0.0001:
+		camera_right = Vector3(camera_forward.z, 0.0, -camera_forward.x).normalized()
+	else:
+		camera_right = camera_right.normalized()
+	return {"forward": camera_forward, "right": camera_right}
+
+
+func evaluate_camera_composition() -> Dictionary:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y <= 1.0:
+		viewport_size = Vector2(1080.0, 1920.0)
+	var player_screen: Vector2 = camera.unproject_position(player.global_position) if camera else Vector2.ZERO
+	var basis: Dictionary = _camera_movement_basis()
+	var movement_forward: Vector3 = basis.forward
+	var to_player: Vector3 = player.global_position - camera.global_position
+	to_player.y = 0.0
+	var player_in_view: float = 0.0
+	if to_player.length_squared() > 0.01:
+		player_in_view = basis.forward.dot(to_player.normalized())
+	var look_target: Vector3 = _compute_stylized_camera_pose().look_target
+	var target_ahead: float = (look_target - player.global_position).dot(basis.forward)
+	return {
+		"player_screen_x_pct": player_screen.x / viewport_size.x,
+		"player_screen_y_pct": player_screen.y / viewport_size.y,
+		"player_in_view": player_in_view,
+		"target_ahead_of_player": target_ahead,
+		"movement_forward_dot": movement_forward.dot(basis.forward),
+		"player_in_front_of_camera": player_in_view > 0.2,
+	}
+
+
+func assert_camera_composition_valid(context: String = "gameplay") -> void:
+	var metrics: Dictionary = evaluate_camera_composition()
+	assert(metrics.player_in_front_of_camera,
+		"%s: player must stay in front of camera (in_view=%.2f)" % [context, metrics.player_in_view])
+	assert(metrics.player_screen_x_pct >= 0.30 and metrics.player_screen_x_pct <= 0.70,
+		"%s: player x=%.2f outside 30-70%%" % [context, metrics.player_screen_x_pct])
+	assert(metrics.player_screen_y_pct >= 0.55 and metrics.player_screen_y_pct <= 0.88,
+		"%s: player y=%.2f outside 55-88%%" % [context, metrics.player_screen_y_pct])
+	assert(metrics.target_ahead_of_player > 0.0,
+		"%s: camera target must be ahead of player" % context)
+	assert(metrics.movement_forward_dot > 0.9,
+		"%s: movement basis must align with camera forward" % context)
 
 
 func capture_gameplay_camera_state() -> Dictionary:
@@ -616,7 +708,7 @@ func debug_advance_to_island(island_index: int) -> void:
 	if island_index < route_cannons.size():
 		_activate_route_cannon(island_index)
 	_set_state(HopState.LANDED if island_index > 0 else HopState.ON_FOOT)
-	apply_gameplay_camera_state(true)
+	bootstrap_gameplay_camera()
 
 
 func _uses_production_island_visual(island_index: int) -> bool:
@@ -1636,20 +1728,22 @@ func _input(event: InputEvent) -> void:
 	elif hop_state == HopState.FLYING and press and not _is_ui_zone(pos):
 		activate_special()
 	elif hop_state in [HopState.ON_FOOT, HopState.LANDED]:
-		if press and active_pointer == -999 and not _is_ui_zone(pos):
-			active_pointer = pointer_id
+		if not camera_bootstrapped:
+			return
+		if press and camera_orbit_pointer == -999 and _is_camera_swipe_zone(pos):
+			camera_orbit_pointer = pointer_id
 			gesture_start = pos
 			gesture_last = pos
 			return
-		if pointer_id != active_pointer:
+		if pointer_id != camera_orbit_pointer:
 			return
 		if motion:
 			var look_delta := pos - gesture_last
 			gesture_last = pos
 			target_orbit_yaw = fmod(target_orbit_yaw - look_delta.x * 0.16, 360.0)
-			target_orbit_pitch = clampf(target_orbit_pitch + look_delta.y * 0.10, 9.0, 42.0)
+			target_orbit_pitch = clampf(target_orbit_pitch + look_delta.y * 0.10, 9.0, 32.0)
 		elif release:
-			active_pointer = -999
+			camera_orbit_pointer = -999
 
 
 func _is_ui_zone(pos: Vector2) -> bool:
@@ -1659,6 +1753,15 @@ func _is_ui_zone(pos: Vector2) -> bool:
 	var top_limit: float = viewport_size.y * 0.16
 	var bottom_limit: float = viewport_size.y * 0.66
 	return pos.y < top_limit or pos.y > bottom_limit
+
+
+func _is_camera_swipe_zone(pos: Vector2) -> bool:
+	if _is_ui_zone(pos):
+		return false
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y <= 1.0:
+		viewport_size = Vector2(1080.0, 1920.0)
+	return pos.x >= viewport_size.x * 0.52
 
 
 func set_move_vector(value: Vector2) -> void:
@@ -1869,11 +1972,15 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_walking(delta: float) -> void:
+	if not camera_bootstrapped:
+		return
 	var input_vector := (move_input + keyboard_move).limit_length(1.0)
-	var yaw := deg_to_rad(target_orbit_yaw)
-	var camera_forward := Vector3(-sin(yaw), 0.0, -cos(yaw)).normalized()
-	var camera_right := Vector3(cos(yaw), 0.0, -sin(yaw)).normalized()
-	var direction := (camera_right * input_vector.x + camera_forward * -input_vector.y).normalized() if input_vector.length_squared() > 0.01 else Vector3.ZERO
+	var basis: Dictionary = _camera_movement_basis()
+	var direction: Vector3 = basis.forward * (-input_vector.y) + basis.right * input_vector.x
+	if direction.length_squared() > 0.01:
+		direction = direction.normalized()
+	else:
+		direction = Vector3.ZERO
 	jump_buffer = maxf(0.0, jump_buffer - delta)
 	if player.is_on_floor():
 		coyote_time = 0.12
@@ -2001,6 +2108,8 @@ func _land_on_target() -> void:
 	objective_changed.emit(int(objective_progress.get(current_island_index, 0)), required, _objective_label(current_island_index))
 	instruction_changed.emit("%s  •  %s  •  %s" % [landing_label, _island_name(current_island_index), _objective_label(current_island_index)])
 	_update_action_prompt()
+	if _uses_stylized_v18():
+		bootstrap_gameplay_camera()
 
 
 func _fail_route(reason: String) -> void:
@@ -2026,13 +2135,15 @@ func _retry_checkpoint() -> void:
 	ability_uses = 0
 	blasto_impact_used = false
 	flight_time = 0.0
-	active_pointer = -999
+	_reset_gameplay_input_state()
 	_activate_route_cannon(current_island_index)
 	player.global_position = route_centers[current_island_index] + Vector3(-2.0, FLOOR_OFFSET + 0.2, 1.8)
 	player.velocity = Vector3.ZERO
 	player.visible = true
 	if player_shadow: player_shadow.visible = true
 	_set_state(HopState.ON_FOOT if current_island_index == 0 else HopState.LANDED)
+	if _uses_stylized_v18():
+		bootstrap_gameplay_camera()
 	instruction_changed.emit("CHECKPOINT WIEDERHERGESTELLT  •  KEINE ZUSÄTZLICHE ENERGIE")
 	_update_action_prompt()
 
@@ -2223,9 +2334,10 @@ func _process(delta: float) -> void:
 		aim_power = lerpf(0.28, 1.0, charge_time / charge_duration)
 		_update_trajectory()
 		aim_changed.emit(aim_pitch, aim_power)
-	orbit_yaw = lerp_angle(deg_to_rad(orbit_yaw), deg_to_rad(target_orbit_yaw), minf(1.0, delta * 12.0))
-	orbit_yaw = rad_to_deg(orbit_yaw)
-	orbit_pitch = lerpf(orbit_pitch, target_orbit_pitch, minf(1.0, delta * 12.0))
+	if camera_bootstrapped:
+		orbit_yaw = lerp_angle(deg_to_rad(orbit_yaw), deg_to_rad(target_orbit_yaw), minf(1.0, delta * 12.0))
+		orbit_yaw = rad_to_deg(orbit_yaw)
+		orbit_pitch = lerpf(orbit_pitch, target_orbit_pitch, minf(1.0, delta * 12.0))
 	for cloud in clouds:
 		if is_instance_valid(cloud):
 			var origin: Vector3 = cloud.get_meta("origin")
@@ -2328,31 +2440,29 @@ func _update_camera(delta: float) -> void:
 				desired = projectile.global_position - flight_dir * 5.4 + Vector3(0, 1.65, 0)
 				look_target = projectile.global_position + flight_dir * 4.2
 				desired_fov = 72.0 + clampf(projectile.velocity.length() - 20.0, 0.0, 6.0)
-		HopState.LANDED, HopState.RESULT:
+		HopState.FAILED:
+			desired = route_centers[current_island_index] + Vector3(0, 6.5, 10.0)
+			look_target = route_centers[current_island_index] + Vector3(0, 1.0, -2.0)
+			desired_fov = 58.0
+		HopState.RESULT:
 			if not _uses_stylized_v18():
 				var yaw := deg_to_rad(orbit_yaw)
 				var pitch := deg_to_rad(orbit_pitch)
 				var orbit_offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * 8.0
 				desired = player.global_position + orbit_offset + Vector3(0, 1.2, 0)
 				look_target = player.global_position + Vector3(0, 0.75, 0)
-		HopState.FAILED:
-			desired = route_centers[current_island_index] + Vector3(0, 6.5, 10.0)
-			look_target = route_centers[current_island_index] + Vector3(0, 1.0, -2.0)
-			desired_fov = 58.0
 	if hop_state != HopState.FLYING:
 		var minimum_camera_distance := 4.8 if hop_state in [HopState.ENTERING, HopState.AIMING] else 4.2
-		desired = _resolve_camera_occlusion(look_target, desired, minimum_camera_distance)
+		var skip_occlusion := _uses_stylized_v18() and hop_state in [HopState.ON_FOOT, HopState.LANDED]
+		if not skip_occlusion:
+			desired = _resolve_camera_occlusion(look_target, desired, minimum_camera_distance)
 	if shake_left > 0.0:
 		shake_left -= delta
 		desired += Vector3(random.randf_range(-0.12, 0.12), random.randf_range(-0.1, 0.1), 0)
-	if _camera_snap_pending:
-		camera.global_position = desired
-		camera.fov = desired_fov
-		if camera.global_position.distance_to(look_target) > 0.2:
-			camera.look_at(look_target, Vector3.UP)
-		_camera_snap_pending = false
-		return
 	var camera_response := 8.5 if hop_state == HopState.FLYING else 7.2 if hop_state in [HopState.ENTERING, HopState.AIMING] else 5.5
+	if not camera_bootstrapped and hop_state in [HopState.ON_FOOT, HopState.LANDED] and _uses_stylized_v18():
+		_apply_gameplay_camera_pose_immediate()
+		return
 	camera.global_position = camera.global_position.lerp(desired, minf(1.0, delta * camera_response))
 	camera.fov = lerpf(camera.fov, desired_fov, minf(1.0, delta * 5.0))
 	if camera.global_position.distance_to(look_target) > 0.2:

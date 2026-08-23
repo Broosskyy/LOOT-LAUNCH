@@ -28,8 +28,7 @@ func _run() -> void:
 		await process_frame
 	var world = main.world
 	assert(world != null, "Gameplay world must exist after start_launch")
-	world.apply_gameplay_camera_state(true)
-	world.camera.current = true
+	assert(world.camera_bootstrapped, "Camera must bootstrap before screenshots")
 	for _i in range(20):
 		world._update_camera(0.033)
 		await process_frame
