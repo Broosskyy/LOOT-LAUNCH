@@ -63,7 +63,7 @@ static func _configure_stylized_surface_flags(mats: Dictionary) -> void:
 	for key in grass_keys:
 		var grass_mat: StandardMaterial3D = mats[key] as StandardMaterial3D
 		grass_mat.vertex_color_use_as_albedo = true
-		grass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		grass_mat.cull_mode = BaseMaterial3D.CULL_BACK if key == "distant_grass" else BaseMaterial3D.CULL_DISABLED
 	for key in stone_keys:
 		var stone_mat: StandardMaterial3D = mats[key] as StandardMaterial3D
 		stone_mat.vertex_color_use_as_albedo = false

@@ -37,7 +37,7 @@ func _run() -> void:
 	)
 	for _i in range(6):
 		await process_frame
-	world._apply_stylized_start_camera()
+	world.apply_gameplay_camera_state(true)
 	world.camera.current = true
 	for _i in range(24):
 		world._update_camera(0.033)

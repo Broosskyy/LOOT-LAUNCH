@@ -37,7 +37,7 @@ func _run() -> void:
 	for i in range(11, 23):
 		if world.get_node_or_null("SkyIsland%02d" % i) != null:
 			distant_islands += 1
-	assert(distant_islands >= 8, "Decorative depth islands present")
+	assert(distant_islands >= 3, "Decorative depth islands present")
 	assert(world.mats.has("grass_main") and world.mats.has("stone_main"), "Stylized palette active")
 	print("LOOT LAUNCH v18 stylized world smoke passed: array_meshes=", array_mesh_count,
 		" distant_islands=", distant_islands, " portals=", world.portal_pair.size())
