@@ -4,8 +4,9 @@ class_name StylizedMaterialLibrary
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const StylizedShaderLibrary = preload("res://scripts/environment/stylized/stylized_shader_library.gd")
 const StylizedMotionController = preload("res://scripts/environment/stylized/stylized_motion_controller.gd")
+const SurfaceLib = preload("res://scripts/environment/stylized/stylized_surface_library.gd")
 
-## V26 render foundation — muted palette + GLES stylized surface shaders.
+## V26/V38 render foundation — muted palette + Surface 3.0 stylized shaders.
 
 
 static func apply_palette(
@@ -16,49 +17,25 @@ static func apply_palette(
 ) -> void:
 	var use_shaders: bool = quality_level >= 1
 	# Grass family
-	mats["grass_main"] = _surface(
-		use_shaders, material_fn, Color("448a52"), 0.93, 0.0, true, 0.11, 0.08
-	)
-	mats["grass_light"] = _surface(
-		use_shaders, material_fn, Color("5ea662"), 0.91, 0.0, true, 0.10, 0.08
-	)
-	mats["grass_dark"] = _surface(
-		use_shaders, material_fn, Color("367a44"), 0.94, 0.0, true, 0.12, 0.07
-	)
+	mats["grass_main"] = _grass_surface(use_shaders, material_fn, Color("448a52"), 0.93, "main", quality_level)
+	mats["grass_light"] = _grass_surface(use_shaders, material_fn, Color("5ea662"), 0.91, "light", quality_level)
+	mats["grass_dark"] = _grass_surface(use_shaders, material_fn, Color("367a44"), 0.94, "dark", quality_level)
 	# Rock / cliff family
-	mats["stone_main"] = _surface(
-		use_shaders, material_fn, Color("8e8880"), 0.93, 0.0, false, 0.14, 0.09
-	)
-	mats["stone_dark"] = _surface(
-		use_shaders, material_fn, Color("6e6862"), 0.94, 0.0, false, 0.16, 0.06
-	)
-	mats["stone_light"] = _surface(
-		use_shaders, material_fn, Color("b4aca0"), 0.89, 0.0, false, 0.11, 0.10
-	)
-	mats["path_stone"] = _surface(
-		use_shaders, material_fn, Color("c4b8a6"), 0.88, 0.0, false, 0.08, 0.11
-	)
-	mats["stone_warm"] = _surface(
-		use_shaders, material_fn, Color("a89888"), 0.9, 0.0, false, 0.10, 0.10
-	)
-	mats["ruin_stone"] = _surface(
-		use_shaders, material_fn, Color("a89a8a"), 0.91, 0.0, false, 0.11, 0.09
-	)
+	mats["stone_main"] = _rock_surface(use_shaders, material_fn, Color("8e8880"), 0.93, SurfaceLib.StoneFamily.CLIFF, quality_level)
+	mats["stone_dark"] = _rock_surface(use_shaders, material_fn, Color("6e6862"), 0.94, SurfaceLib.StoneFamily.CLIFF, quality_level)
+	mats["stone_light"] = _rock_surface(use_shaders, material_fn, Color("b4aca0"), 0.89, SurfaceLib.StoneFamily.ARCHITECTURE, quality_level)
+	mats["path_stone"] = _rock_surface(use_shaders, material_fn, Color("c4b8a6"), 0.88, SurfaceLib.StoneFamily.PATH, quality_level)
+	mats["stone_warm"] = _rock_surface(use_shaders, material_fn, Color("a89888"), 0.9, SurfaceLib.StoneFamily.CLIFF, quality_level)
+	mats["ruin_stone"] = _rock_surface(use_shaders, material_fn, Color("a89a8a"), 0.91, SurfaceLib.StoneFamily.RUIN, quality_level)
 	mats["dirt"] = StylizedShaderLibrary.standard_surface(material_fn, Color("7a5d45"), 0.95, 0.0)
-	mats["wood"] = StylizedShaderLibrary.standard_surface(material_fn, Color("6a4228"), 0.9, 0.0)
-	mats["wood_dark"] = StylizedShaderLibrary.standard_surface(material_fn, Color("4a3020"), 0.92, 0.0)
-	mats["wood_light"] = StylizedShaderLibrary.standard_surface(material_fn, Color("9a5f36"), 0.86, 0.0)
-	mats["brass"] = StylizedShaderLibrary.standard_surface(material_fn, Color("b88830"), 0.38, 0.72)
-	mats["cannon_dark"] = StylizedShaderLibrary.standard_surface(material_fn, Color("2c2f3a"), 0.42, 0.62)
-	mats["crystal_violet"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("9068e0"), 0.24, 0.06, Color("6840d0"), 0.34
-	)
-	mats["crystal_blue"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("58b0e0"), 0.22, 0.05, Color("3898d0"), 0.28
-	)
-	mats["portal"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("7a48d8"), 0.26, 0.08, Color("5830b8"), 0.46
-	)
+	mats["wood"] = _wood_surface(use_shaders, material_fn, Color("6a4228"), 0.9, quality_level)
+	mats["wood_dark"] = _wood_surface(use_shaders, material_fn, Color("4a3020"), 0.92, quality_level)
+	mats["wood_light"] = _wood_surface(use_shaders, material_fn, Color("9a5f36"), 0.86, quality_level)
+	mats["brass"] = _metal_surface(use_shaders, material_fn, Color("b88830"), SurfaceLib.MetalFamily.BRASS, quality_level)
+	mats["cannon_dark"] = _metal_surface(use_shaders, material_fn, Color("2c2f3a"), SurfaceLib.MetalFamily.DARK_METAL, quality_level)
+	mats["crystal_violet"] = _crystal_surface(use_shaders, material_fn, Color("9068e0"), Color("6840d0"), Color("5830b8"), 0.34, quality_level)
+	mats["crystal_blue"] = _crystal_surface(use_shaders, material_fn, Color("58b0e0"), Color("3898d0"), Color("2878b8"), 0.28, quality_level)
+	mats["portal"] = _crystal_surface(use_shaders, material_fn, Color("7a48d8"), Color("5830b8"), Color("4828a0"), 0.40, quality_level)
 	mats["pad_energy"] = StylizedShaderLibrary.standard_surface(
 		material_fn, Color("b868c8"), 0.3, 0.05, Color("c870d8"), 0.46
 	)
@@ -70,28 +47,16 @@ static func apply_palette(
 		material_fn, Color("b080d0"), 0.46, 0.0, Color("9860b8"), 0.06
 	)
 	mats["flower_center"] = StylizedShaderLibrary.standard_surface(material_fn, Color("e0b848"), 0.42, 0.0)
-	mats["leaf_green"] = _surface(
-		use_shaders, material_fn, Color("488850"), 0.88, 0.0, true, 0.09, 0.07
-	)
-	mats["leaf_dark"] = _surface(
-		use_shaders, material_fn, Color("3a8044"), 0.9, 0.0, true, 0.10, 0.06
-	)
-	mats["leaf_light"] = _surface(
-		use_shaders, material_fn, Color("68a868"), 0.88, 0.0, true, 0.08, 0.07
-	)
-	mats["trunk"] = StylizedShaderLibrary.standard_surface(material_fn, Color("7a5230"), 0.92, 0.0)
-	mats["coin"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("d0a030"), 0.28, 0.7, Color("b88820"), 0.18
-	)
+	mats["leaf_green"] = _leaf_surface(use_shaders, material_fn, Color("488850"), 0.88, quality_level)
+	mats["leaf_dark"] = _leaf_surface(use_shaders, material_fn, Color("3a8044"), 0.9, quality_level)
+	mats["leaf_light"] = _leaf_surface(use_shaders, material_fn, Color("68a868"), 0.88, quality_level)
+	mats["trunk"] = _wood_surface(use_shaders, material_fn, Color("7a5230"), 0.92, quality_level)
+	mats["coin"] = _metal_surface(use_shaders, material_fn, Color("d0a030"), SurfaceLib.MetalFamily.BRASS, quality_level)
 	mats["cloud_soft"] = _cloud_surface(use_shaders, material_fn, Color("fafcff"), Color("c8d8ec"), 0.06)
 	mats["cloud_mid"] = _cloud_surface(use_shaders, material_fn, Color("f2f8ff"), Color("bccede"), 0.08)
 	mats["cloud_shadow"] = _cloud_surface(use_shaders, material_fn, Color("e8f2fc"), Color("a8bdd4"), 0.10)
-	mats["distant_grass"] = _surface(
-		use_shaders, material_fn, Color("7a9888"), 0.95, 0.0, true, 0.07, 0.05
-	)
-	mats["distant_rock"] = _surface(
-		use_shaders, material_fn, Color("98a4b0"), 0.96, 0.0, false, 0.14, 0.04
-	)
+	mats["distant_grass"] = _grass_surface(use_shaders, material_fn, Color("7a9888"), 0.95, "dark", quality_level)
+	mats["distant_rock"] = _rock_surface(use_shaders, material_fn, Color("98a4b0"), 0.96, SurfaceLib.StoneFamily.CLIFF, quality_level)
 	mats["bouncer"] = StylizedShaderLibrary.standard_surface(
 		material_fn, Color("f0a878"), 0.5, 0.02, Color("e88958"), 0.05
 	)
@@ -101,7 +66,7 @@ static func apply_palette(
 	mats["brass_gold"] = mats["brass"]
 	mats["chest_wood"] = mats["wood"]
 	mats["chest_metal"] = mats["brass"]
-	mats["portal_stone"] = mats["stone_dark"]
+	mats["portal_stone"] = mats["ruin_stone"]
 	mats["portal_energy"] = mats["portal"]
 	mats["pad_stone"] = mats["stone_main"]
 	mats["sign_wood"] = mats["wood"]
@@ -129,21 +94,80 @@ static func apply_palette(
 	mats["water"] = _water_surface(use_shaders, transparent_fn, quality_level)
 
 
-static func _surface(
+static func _grass_surface(
 	use_shaders: bool,
 	material_fn: Callable,
 	color: Color,
 	roughness: float,
-	metallic: float,
-	is_grass: bool,
-	cool_shadow: float,
-	warm_highlight: float
+	variant: String,
+	quality_level: int
 ) -> Material:
 	if use_shaders:
-		if is_grass:
-			return StylizedShaderLibrary.grass_material(color, roughness)
-		return StylizedShaderLibrary.rock_material(color, roughness, metallic, cool_shadow, warm_highlight)
-	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, metallic)
+		return StylizedShaderLibrary.grass_material(color, roughness, variant, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, 0.0)
+
+
+static func _rock_surface(
+	use_shaders: bool,
+	material_fn: Callable,
+	color: Color,
+	roughness: float,
+	family: int,
+	quality_level: int
+) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.rock_material(color, roughness, 0.0, family, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, 0.0)
+
+
+static func _wood_surface(
+	use_shaders: bool,
+	material_fn: Callable,
+	color: Color,
+	roughness: float,
+	quality_level: int
+) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.wood_material(color, roughness, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, 0.0)
+
+
+static func _metal_surface(
+	use_shaders: bool,
+	material_fn: Callable,
+	color: Color,
+	family: int,
+	quality_level: int
+) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.metal_material(color, family, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, color, 0.38 if family == SurfaceLib.MetalFamily.BRASS else 0.42, 0.72 if family == SurfaceLib.MetalFamily.BRASS else 0.62)
+
+
+static func _crystal_surface(
+	use_shaders: bool,
+	material_fn: Callable,
+	base: Color,
+	core: Color,
+	emission: Color,
+	energy: float,
+	quality_level: int
+) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.crystal_material(base, core, emission, energy, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, base, 0.24, 0.06, emission, energy)
+
+
+static func _leaf_surface(
+	use_shaders: bool,
+	material_fn: Callable,
+	color: Color,
+	roughness: float,
+	quality_level: int
+) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.leaf_material(color, roughness, quality_level)
+	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, 0.0)
 
 
 static func _water_surface(use_shaders: bool, transparent_fn: Callable, quality_level: int) -> Material:
