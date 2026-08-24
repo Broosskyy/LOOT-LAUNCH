@@ -41,8 +41,8 @@ static func decorate_hero_midground(
 	StylizedGroundRuinsKit.add_stair_segment(parent, Vector3(0.0, 0.0, 4.2), 8.0, mats, mesh_fn, 4, 3301)
 	StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(3.4, 0.0, 4.6), -12.0, mats, mesh_fn, 4101)
 	var portal_root: Node3D = Node3D.new()
-	portal_root.position = Vector3(-0.5, 0.0, 5.2)
-	portal_root.rotation_degrees.y = 24.0
+	portal_root.position = Vector3(0.2, 0.0, 4.0)
+	portal_root.rotation_degrees.y = 6.0
 	parent.add_child(portal_root)
 	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.35)
 	StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn)

@@ -601,7 +601,7 @@ func _gameplay_camera_yaw_from_route() -> float:
 	var to: Vector3
 	if _uses_stylized_v18() and current_island_index == 0 and route_centers.size() > 1:
 		var cannon_pos: Vector3 = cannon_root.global_position if is_instance_valid(cannon_root) else Vector3(route_centers[0])
-		to = cannon_pos.lerp(Vector3(route_centers[1]), 0.55)
+		to = cannon_pos.lerp(Vector3(route_centers[1]), StylizedWorldComposition.CAMERA_ROUTE_BLEND)
 	elif is_instance_valid(cannon_root):
 		to = cannon_root.global_position
 	else:
@@ -762,7 +762,8 @@ func assert_world_composition_valid(context: String = "spawn") -> void:
 		"%s: player spawn marker must be in view" % context)
 	assert(metrics.has("cannon") and metrics["cannon"]["in_view"],
 		"%s: cannon marker must be in view" % context)
-	if metrics.has("primary_destination") and metrics["primary_destination"]["in_view"]:
+	StylizedWorldComposition.assert_v25_screen_bands(metrics, context)
+	if metrics.has("primary_destination") and metrics["primary_destination"]["in_view"] and metrics.has("player_spawn"):
 		assert(metrics["primary_destination"]["y_pct"] < metrics["player_spawn"]["y_pct"],
 			"%s: destination should sit above player in portrait frame" % context)
 
@@ -1347,6 +1348,8 @@ func _build_source_cannon() -> void:
 	for i in range(route_centers.size() - 1):
 		var route_cannon := _create_cannon("RouteCannon%02d" % (i + 1))
 		route_cannon.position = route_centers[i] + (_stylized_cannon_offset() if _uses_stylized_v18() else Vector3(0.0, 0.92, -2.2))
+		if _uses_stylized_v18():
+			route_cannon.scale = Vector3.ONE * StylizedWorldComposition.CANNON_VISUAL_SCALE
 		add_child(route_cannon)
 		var pivot: Node3D = route_cannon.get_node("AimPivot")
 		pivot.look_at(route_centers[i + 1] + Vector3(0, 2.0, 0), Vector3.UP)

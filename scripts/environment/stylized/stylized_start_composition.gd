@@ -5,13 +5,12 @@ class_name StylizedStartComposition
 
 
 const PATH_STONES: Array[Dictionary] = [
-	{"pos": Vector3(-0.95, 0.04, 1.55), "rot_y": 10.0},
-	{"pos": Vector3(-0.35, 0.04, 0.62), "rot_y": -14.0},
-	{"pos": Vector3(0.18, 0.04, -0.18), "rot_y": 18.0},
-	{"pos": Vector3(0.62, 0.04, -1.05), "rot_y": -6.0},
-	{"pos": Vector3(0.28, 0.04, -1.92), "rot_y": 24.0},
-	{"pos": Vector3(-0.32, 0.04, -2.78), "rot_y": -16.0},
-	{"pos": Vector3(0.05, 0.04, -3.55), "rot_y": 8.0},
+	{"pos": Vector3(-0.75, 0.04, 1.35), "rot_y": 8.0},
+	{"pos": Vector3(-0.15, 0.04, 0.48), "rot_y": -10.0},
+	{"pos": Vector3(0.35, 0.04, -0.35), "rot_y": 14.0},
+	{"pos": Vector3(0.72, 0.04, -1.18), "rot_y": -4.0},
+	{"pos": Vector3(0.48, 0.04, -2.05), "rot_y": 18.0},
+	{"pos": Vector3(0.05, 0.04, -2.82), "rot_y": -8.0},
 ]
 
 const EDGE_STONES: Array[Vector3] = [
@@ -20,8 +19,8 @@ const EDGE_STONES: Array[Vector3] = [
 	Vector3(-1.8, 0.0, -3.9),
 ]
 
-const PAD_POS := Vector3(-2.35, 0.0, 0.35)
-const CHEST_POS := Vector3(-3.4, 0.0, 0.6)
+const PAD_POS := Vector3(-2.2, 0.0, 0.35)
+const CHEST_POS := Vector3(-2.9, 0.0, 0.55)
 const RUIN_POS := Vector3(-5.2, 0.0, 3.8)
 const CORNER_RUIN_POS := Vector3(-5.2, 0.0, 3.8)
 const PILLAR_POS := Vector3(5.6, 0.0, 1.4)
