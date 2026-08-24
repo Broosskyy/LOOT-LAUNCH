@@ -563,8 +563,10 @@ func _build_islands() -> void:
 		_add_floating_island(route_centers[i], route_radii[i], _route_island_thickness(i), true, i)
 		_decorate_island(route_centers[i], i > 0, i)
 		_add_biome_landmark(route_centers[i], i)
-		_add_jump_gate(route_centers[i], i)
-		_add_aether_beacon(route_centers[i], route_radii[i], i)
+		if not (_uses_stylized_v18() and i == 0):
+			_add_jump_gate(route_centers[i], i)
+		if not (_uses_stylized_v18() and i == 0):
+			_add_aether_beacon(route_centers[i], route_radii[i], i)
 		if i in [1, 3, 5] and quality_level >= 1:
 			_add_waterfall(route_centers[i], route_radii[i], i)
 		if i > 0:
@@ -2643,7 +2645,7 @@ func _process(delta: float) -> void:
 	else:
 		for animated in wind_streamers:
 			if is_instance_valid(animated) and animated.has_meta("animate_portal"):
-				animated.rotation.y += delta * 0.55
+				animated.rotation.y += delta * 0.38
 	if muzzle_glow and hop_state == HopState.AIMING:
 		var pulse := 1.0 + sin(idle_time * 7.0) * 0.12 + aim_power * 0.22
 		muzzle_glow.scale = Vector3.ONE * pulse

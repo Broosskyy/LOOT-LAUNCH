@@ -10,6 +10,9 @@ const WIND_MATERIAL_KEYS: Array[String] = [
 const TREE_WIND_SCALE := 0.42
 
 
+const VisualMaster = preload("res://scripts/environment/stylized/stylized_visual_master.gd")
+
+
 static func wind_strength_for_quality(quality_level: int) -> float:
 	match clampi(quality_level, 0, 2):
 		0: return 0.0
@@ -58,9 +61,9 @@ static func update_clouds(clouds: Array, idle_time: float) -> void:
 		var phase: float = float(cloud.get_meta("phase", 0.0))
 		var depth: int = int(cloud.get_meta("drift_depth", 1))
 		var speed: float = float(cloud.get_meta("drift_speed", cloud_drift_speed(depth)))
-		var amp_x: float = 0.74 + float(depth) * 0.36
-		var amp_z: float = 0.08 + float(depth) * 0.06
-		var amp_y: float = 0.04 + float(depth) * 0.02
+		var amp_x: float = (0.74 + float(depth) * 0.36) * VisualMaster.CLOUD_DRIFT_SCALE
+		var amp_z: float = (0.08 + float(depth) * 0.06) * VisualMaster.CLOUD_DRIFT_SCALE
+		var amp_y: float = (0.04 + float(depth) * 0.02) * VisualMaster.CLOUD_DRIFT_SCALE
 		cloud.position.x = origin.x + sin(idle_time * speed + phase) * amp_x
 		cloud.position.z = origin.z + cos(idle_time * speed * 0.78 + phase * 0.71) * amp_z
 		cloud.position.y = origin.y + sin(idle_time * speed * 0.42 + phase * 1.2) * amp_y
@@ -74,7 +77,7 @@ static func update_animated_nodes(nodes: Array, delta: float, idle_time: float) 
 			node.rotation.z += delta * 0.65
 		elif node.has_meta("animate_portal"):
 			var dir: float = -1.0 if node.has_meta("portal_counter") else 1.0
-			node.rotation.y += delta * 0.55 * dir
+			node.rotation.y += delta * VisualMaster.PORTAL_ROT_SPEED * dir
 			_pulse_emission(node, idle_time)
 		elif node.has_meta("animate_pad"):
 			node.rotation.y += delta * 0.42
@@ -100,7 +103,7 @@ static func update_pickup_motion(items: Array, delta: float, idle_time: float) -
 		var origin: Vector3 = item.get("origin", node.position)
 		node.rotation.y += delta * 1.55
 		node.rotation.x = sin(idle_time * 1.2 + phase) * 0.045
-		var bob: float = 0.04 + sin(idle_time * 1.85 + phase) * 0.018
+		var bob: float = 0.04 + sin(idle_time * 1.85 + phase) * VisualMaster.RING_BOB_AMPLITUDE
 		if bool(item.get("objective", false)):
 			bob += 0.035
 		node.position.y = float(origin.y) + bob

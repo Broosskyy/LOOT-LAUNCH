@@ -33,7 +33,7 @@ static func grass_material(
 	mat.set_shader_parameter("dry_patch_tint", grass_profile.dry_tint)
 	mat.set_shader_parameter("roughness", roughness)
 	mat.set_shader_parameter("variation_strength", float(profile.vertex_variation) + 0.04)
-	mat.set_shader_parameter("macro_strength", float(profile.macro_strength) * float(grass_profile.patch_strength) * 2.2)
+	mat.set_shader_parameter("macro_strength", float(profile.macro_strength) * float(grass_profile.patch_strength) * 1.85)
 	mat.set_shader_parameter("edge_strength", float(grass_profile.edge_strength))
 	mat.set_shader_parameter("wind_strength", wind_strength)
 	mat.set_shader_parameter("wind_speed", wind_speed)

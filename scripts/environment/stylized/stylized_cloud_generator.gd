@@ -54,9 +54,9 @@ static func build_sky(
 		puff_count += _add_cluster(world, data[0], data[1], int(data[2]), data[3], int(data[4]), rng, mesh_fn, clouds_out)
 		root_count += 1
 	var far_layout: Array = [
-		[Vector3(0.0, 48.0, -165.0), Vector3(5.4, 0.92, 4.0), 5, mat_far, 2],
-		[Vector3(-18.0, 52.0, -195.0), Vector3(5.0, 0.88, 3.6), 4, mat_far, 2],
-		[Vector3(20.0, 46.0, -220.0), Vector3(5.8, 0.90, 4.2), 5, mat_far, 2],
+		[Vector3(-8.0, 50.0, -168.0), Vector3(5.4, 0.92, 4.0), 5, mat_far, 2],
+		[Vector3(-22.0, 54.0, -198.0), Vector3(5.0, 0.88, 3.6), 4, mat_far, 2],
+		[Vector3(14.0, 48.0, -224.0), Vector3(5.8, 0.90, 4.2), 5, mat_far, 2],
 	]
 	var far_limit: int = int(profile.cloud_far_clusters)
 	for data in far_layout.slice(0, far_limit):

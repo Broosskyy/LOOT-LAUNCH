@@ -17,16 +17,16 @@ static func apply_palette(
 ) -> void:
 	var use_shaders: bool = quality_level >= 1
 	# Grass family
-	mats["grass_main"] = _grass_surface(use_shaders, material_fn, Color("448a52"), 0.93, "main", quality_level)
-	mats["grass_light"] = _grass_surface(use_shaders, material_fn, Color("5ea662"), 0.91, "light", quality_level)
-	mats["grass_dark"] = _grass_surface(use_shaders, material_fn, Color("367a44"), 0.94, "dark", quality_level)
+	mats["grass_main"] = _grass_surface(use_shaders, material_fn, Color("4a9454"), 0.93, "main", quality_level)
+	mats["grass_light"] = _grass_surface(use_shaders, material_fn, Color("62aa62"), 0.91, "light", quality_level)
+	mats["grass_dark"] = _grass_surface(use_shaders, material_fn, Color("3a7a44"), 0.94, "dark", quality_level)
 	# Rock / cliff family
 	mats["stone_main"] = _rock_surface(use_shaders, material_fn, Color("8e8880"), 0.93, SurfaceLib.StoneFamily.CLIFF, quality_level)
 	mats["stone_dark"] = _rock_surface(use_shaders, material_fn, Color("6e6862"), 0.94, SurfaceLib.StoneFamily.CLIFF, quality_level)
 	mats["stone_light"] = _rock_surface(use_shaders, material_fn, Color("b4aca0"), 0.89, SurfaceLib.StoneFamily.ARCHITECTURE, quality_level)
-	mats["path_stone"] = _rock_surface(use_shaders, material_fn, Color("c4b8a6"), 0.88, SurfaceLib.StoneFamily.PATH, quality_level)
+	mats["path_stone"] = _rock_surface(use_shaders, material_fn, Color("c8b8a4"), 0.88, SurfaceLib.StoneFamily.PATH, quality_level)
 	mats["stone_warm"] = _rock_surface(use_shaders, material_fn, Color("a89888"), 0.9, SurfaceLib.StoneFamily.CLIFF, quality_level)
-	mats["ruin_stone"] = _rock_surface(use_shaders, material_fn, Color("a89a8a"), 0.91, SurfaceLib.StoneFamily.RUIN, quality_level)
+	mats["ruin_stone"] = _rock_surface(use_shaders, material_fn, Color("a89888"), 0.91, SurfaceLib.StoneFamily.RUIN, quality_level)
 	mats["dirt"] = StylizedShaderLibrary.standard_surface(material_fn, Color("7a5d45"), 0.95, 0.0)
 	mats["wood"] = _wood_surface(use_shaders, material_fn, Color("6a4228"), 0.9, quality_level)
 	mats["wood_dark"] = _wood_surface(use_shaders, material_fn, Color("4a3020"), 0.92, quality_level)

@@ -1,7 +1,9 @@
 extends RefCounted
 class_name StylizedSurfaceLibrary
 
-## V38 — Surface 3.0 material family profiles (shared parameters, no per-object materials).
+## V38/V40 — Surface 3.0 material family profiles (shared parameters, no per-object materials).
+
+const VisualMaster = preload("res://scripts/environment/stylized/stylized_visual_master.gd")
 
 enum StoneFamily { CLIFF, PATH, RUIN, ARCHITECTURE }
 enum MetalFamily { DARK_METAL, BRASS }
@@ -12,8 +14,8 @@ static func quality_profile(quality_level: int) -> Dictionary:
 	return {
 		"use_shaders": q >= 1,
 		"use_macro_textures": q >= 2,
-		"macro_strength": [0.0, 0.55, 1.0][q],
-		"vertex_variation": [0.04, 0.08, 0.12][q],
+		"macro_strength": [0.0, 0.50, VisualMaster.MACRO_STRENGTH_Q2][q],
+		"vertex_variation": [0.04, 0.07, VisualMaster.VERTEX_VARIATION_Q2][q],
 	}
 
 

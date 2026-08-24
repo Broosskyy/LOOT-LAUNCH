@@ -432,8 +432,6 @@ static func dress_start_island(
 	_place_start_flower(parent, StylizedStartComposition.RUIN_POS + Vector3(-0.35, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 408, mats, mesh_fn, exclusions, quality_level)
 	create_flower_cluster(parent, StylizedStartComposition.SIGN_POS + Vector3(0.65, 0.0, 0.35), FlowerPreset.PINK_CLUSTER, 409, mats, mesh_fn)
 	create_flower_cluster(parent, StylizedStartComposition.PLINTH_POS + Vector3(0.45, 0.0, 0.25), FlowerPreset.WHITE_CLUSTER, 410, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(4.5, 0.0, 1.8), FlowerPreset.MIXED_SOFT_CLUSTER, 411, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(-3.2, 0.0, 2.8), FlowerPreset.PINK_CLUSTER, 412, mats, mesh_fn)
 	# Trees — silhouette anchors (clustered).
 	create_tree_cluster(parent, StylizedStartComposition.TREE_POS, TreeVariant.TREE_A, TreeVariant.TREE_C, 701, mats, mesh_fn, 1.05, 0.78)
 	create_tree(parent, Vector3(5.4, 0.0, -1.1), TreeVariant.TREE_B, 0.82, 702, mats, mesh_fn)
@@ -443,7 +441,7 @@ static func dress_start_island(
 	_place_start_flower(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(-0.45, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 711, mats, mesh_fn, exclusions, quality_level)
 	_place_start_grass(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.25, 0.0, -0.35), GrassVariant.SHORT, 0.86, 712, mats, mesh_fn, exclusions, quality_level)
 	# Zone G — cliff edge clusters (~35% coverage).
-	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 16, 0.34, 800)
+	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 16, 0.30, 800)
 	for i in range(edge_positions.size()):
 		if quality_level < 2 and i % Density.tier_skip_every_nth(2, quality_level) != 0:
 			continue

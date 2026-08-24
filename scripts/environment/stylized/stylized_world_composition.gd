@@ -2,23 +2,24 @@ extends RefCounted
 class_name StylizedWorldComposition
 
 const StartComp = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
+const VisualMaster = preload("res://scripts/environment/stylized/stylized_visual_master.gd")
 
-## V37 — Final Wolkengarten reference composition SSOT (supersedes V30 camera table).
+## V40 — Final Wolkengarten reference composition (supersedes V30/V37 camera table).
+
 
 enum IslandRole { HERO_START, PRIMARY_DESTINATION, ROUTE, PLAYABLE, HERO_LANDMARK, VISTA, MICRO }
 
+const CAMERA_FOV := VisualMaster.CAMERA_FOV
+const CAMERA_PITCH := VisualMaster.CAMERA_PITCH
+const CAMERA_LOOK_HEIGHT := VisualMaster.CAMERA_LOOK_HEIGHT
+const CAMERA_LOOK_AHEAD := VisualMaster.CAMERA_LOOK_AHEAD
+const CAMERA_FOLLOW_DISTANCE := VisualMaster.CAMERA_FOLLOW_DISTANCE
+const CAMERA_FOLLOW_HEIGHT := VisualMaster.CAMERA_FOLLOW_HEIGHT
+const CAMERA_ROUTE_BLEND := VisualMaster.CAMERA_ROUTE_BLEND
 
-const CAMERA_FOV := 54.0
-const CAMERA_PITCH := 16.5
-const CAMERA_LOOK_HEIGHT := 0.60
-const CAMERA_LOOK_AHEAD := 5.85
-const CAMERA_FOLLOW_DISTANCE := 10.65
-const CAMERA_FOLLOW_HEIGHT := 2.78
-const CAMERA_ROUTE_BLEND := 0.50
-
-const PLAYER_SPAWN_OFFSET := Vector3(-1.68, 0.0, 1.82)
-const CANNON_OFFSET := Vector3(1.32, 0.92, -2.22)
-const CANNON_VISUAL_SCALE := 1.06
+const PLAYER_SPAWN_OFFSET := VisualMaster.PLAYER_SPAWN_OFFSET
+const CANNON_OFFSET := VisualMaster.CANNON_OFFSET
+const CANNON_VISUAL_SCALE := VisualMaster.CANNON_VISUAL_SCALE
 
 const ROUTE_ISLANDS: Array[Dictionary] = [
 	{
@@ -28,8 +29,8 @@ const ROUTE_ISLANDS: Array[Dictionary] = [
 		"role": IslandRole.HERO_START,
 	},
 	{
-		"center": Vector3(5.0, 2.85, -13.8),
-		"radius": 9.6,
+		"center": Vector3(4.2, 3.1, -14.4),
+		"radius": 9.8,
 		"thickness": 1.32,
 		"role": IslandRole.PRIMARY_DESTINATION,
 	},
@@ -60,12 +61,12 @@ const ROUTE_ISLANDS: Array[Dictionary] = [
 ]
 
 const VISTA_ISLANDS: Array[Dictionary] = [
-	{"center": Vector3(-8.5, 5.8, -24.5), "radius": 4.8, "thickness": 0.82, "role": IslandRole.VISTA, "index": 20, "landmark": false},
-	{"center": Vector3(16.5, 5.4, -29.5), "radius": 4.6, "thickness": 0.76, "role": IslandRole.VISTA, "index": 21, "landmark": false},
-	{"center": Vector3(24.0, 8.8, -39.5), "radius": 8.4, "thickness": 0.98, "role": IslandRole.HERO_LANDMARK, "index": 22, "landmark": true},
-	{"center": Vector3(-4.5, 6.2, -33.0), "radius": 4.2, "thickness": 0.78, "role": IslandRole.VISTA, "index": 33, "landmark": false},
-	{"center": Vector3(13.5, 7.2, -46.0), "radius": 2.8, "thickness": 0.66, "role": IslandRole.MICRO, "index": 34, "landmark": false},
-	{"center": Vector3(-16.0, 7.0, -42.0), "radius": 2.6, "thickness": 0.64, "role": IslandRole.MICRO, "index": 35, "landmark": false},
+	{"center": Vector3(-9.0, 6.2, -26.0), "radius": 4.6, "thickness": 0.80, "role": IslandRole.VISTA, "index": 20, "landmark": false},
+	{"center": Vector3(17.0, 6.0, -31.0), "radius": 4.4, "thickness": 0.74, "role": IslandRole.VISTA, "index": 21, "landmark": false},
+	{"center": Vector3(26.0, 10.4, -42.0), "radius": 9.4, "thickness": 1.02, "role": IslandRole.HERO_LANDMARK, "index": 22, "landmark": true},
+	{"center": Vector3(-5.0, 6.8, -35.5), "radius": 3.8, "thickness": 0.74, "role": IslandRole.VISTA, "index": 33, "landmark": false},
+	{"center": Vector3(13.5, 7.2, -46.0), "radius": 2.8, "thickness": 0.66, "role": IslandRole.MICRO, "index": 34, "landmark": false, "hidden": true},
+	{"center": Vector3(-16.0, 7.0, -42.0), "radius": 2.6, "thickness": 0.64, "role": IslandRole.MICRO, "index": 35, "landmark": false, "hidden": true},
 ]
 
 
@@ -87,7 +88,11 @@ static func _thickness_table() -> Array:
 
 
 static func vista_entries() -> Array:
-	return VISTA_ISLANDS.duplicate(true)
+	var out: Array = []
+	for entry in VISTA_ISLANDS:
+		if not bool(entry.get("hidden", false)):
+			out.append(entry.duplicate(true))
+	return out
 
 
 static func ring_arc_for_hop(route_index: int, from_center: Vector3, to_center: Vector3) -> Array[Vector3]:
