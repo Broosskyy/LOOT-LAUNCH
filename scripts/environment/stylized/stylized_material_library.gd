@@ -29,7 +29,12 @@ static func apply_palette(
 	mats["portal"] = StylizedTypedAccess.opaque_material(material_fn, Color("8f4dff"), 0.22, 0.12, Color("6b2fe8"), 0.72)
 	mats["flower_pink"] = StylizedTypedAccess.opaque_material(material_fn, Color("f08cbc"), 0.44, 0.0, Color("d85f9d"), 0.12)
 	mats["flower_white"] = StylizedTypedAccess.opaque_material(material_fn, Color("fff5ef"), 0.48, 0.0)
+	mats["flower_violet"] = StylizedTypedAccess.opaque_material(material_fn, Color("c48cf0"), 0.42, 0.0, Color("9b5cff"), 0.1)
+	mats["flower_center"] = StylizedTypedAccess.opaque_material(material_fn, Color("f5d060"), 0.38, 0.0)
 	mats["leaf_green"] = StylizedTypedAccess.opaque_material(material_fn, Color("4aab5d"), 0.82, 0.0)
+	mats["leaf_dark"] = StylizedTypedAccess.opaque_material(material_fn, Color("3f9f57"), 0.9, 0.0)
+	mats["leaf_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("74c97a"), 0.84, 0.0)
+	mats["trunk"] = StylizedTypedAccess.opaque_material(material_fn, Color("7a5230"), 0.88, 0.0)
 	mats["coin"] = StylizedTypedAccess.opaque_material(material_fn, Color("e8b840"), 0.2, 0.78, Color("d9a020"), 0.28)
 	mats["cloud_soft"] = StylizedTypedAccess.opaque_material(material_fn, Color("f6f9ff"), 1.0, 0.0)
 	mats["cloud_mid"] = StylizedTypedAccess.opaque_material(material_fn, Color("eef4ff"), 1.0, 0.0)
@@ -70,7 +75,7 @@ static func apply_palette(
 
 
 static func _configure_stylized_surface_flags(mats: Dictionary) -> void:
-	var grass_keys: Array[String] = ["grass_main", "grass_light", "grass_dark", "distant_grass"]
+	var grass_keys: Array[String] = ["grass_main", "grass_light", "grass_dark", "distant_grass", "leaf_green", "leaf_dark", "leaf_light"]
 	var stone_keys: Array[String] = ["stone_main", "stone_dark", "stone_light", "stone_warm", "path_stone", "distant_rock"]
 	for key in grass_keys:
 		var grass_mat: StandardMaterial3D = mats[key] as StandardMaterial3D

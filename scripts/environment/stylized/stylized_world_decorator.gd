@@ -26,13 +26,9 @@ static func decorate_start_island(
 	StylizedGroundRuinsKit.add_edge_stones(parent, StylizedStartComposition.EDGE_STONES, mats, mesh_fn, 2705)
 	StylizedRuinGenerator.add_signpost(parent, StylizedStartComposition.SIGN_POS, mats, mesh_fn)
 	StylizedCrystalGenerator.add_cluster(parent, StylizedStartComposition.CRYSTAL_POS, 0.82, mats, mesh_fn)
-	for i in range(StylizedStartComposition.FLOWER_CLUSTERS.size()):
-		StylizedVegetationGenerator.add_flower(parent, StylizedStartComposition.FLOWER_CLUSTERS[i], i % 2, mats, mesh_fn)
-	for pos in StylizedStartComposition.GRASS_CLUSTERS:
-		StylizedVegetationGenerator.add_grass_tuft(parent, pos, mats, mesh_fn, 1.0)
-	StylizedVegetationGenerator.add_tree(parent, StylizedStartComposition.TREE_POS, 1.05, mats, mesh_fn)
 	_add_teleport_pad(parent, mats, mesh_fn, transparent_fn)
 	_add_decor_chest(parent, mats, mesh_fn, StylizedStartComposition.CHEST_POS)
+	StylizedVegetationGenerator.dress_start_island(parent, mats, mesh_fn)
 
 
 static func decorate_hero_midground(
@@ -50,9 +46,7 @@ static func decorate_hero_midground(
 	parent.add_child(portal_root)
 	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.35)
 	StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn)
-	StylizedVegetationGenerator.add_tree(parent, Vector3(5.8, 0.0, 2.4), 0.92, mats, mesh_fn)
-	for pos in [Vector3(2.2, 0.0, 3.4), Vector3(-3.8, 0.0, 3.0)]:
-		StylizedVegetationGenerator.add_grass_tuft(parent, pos, mats, mesh_fn, 0.95)
+	StylizedVegetationGenerator.dress_hero_midground(parent, mats, mesh_fn)
 
 
 static func decorate_playable_island(
@@ -76,7 +70,7 @@ static func decorate_playable_island(
 			StylizedGroundRuinsKit.add_plinth(parent, Vector3(spread * 0.35, 0.0, -0.8), 12.0, mats, mesh_fn, 5310 + island_index)
 		5:
 			StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(-spread * 0.45, 0.0, 1.6), 18.0, mats, mesh_fn, 5400 + island_index)
-	StylizedVegetationGenerator.add_tree(parent, Vector3(-spread, 0.0, 0.8), 0.82, mats, mesh_fn)
+	StylizedVegetationGenerator.dress_playable_island(parent, island_index, radius, mats, mesh_fn)
 
 
 static func decorate_target_island(
@@ -97,6 +91,7 @@ static func decorate_target_island(
 		5:
 			StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(-radius * 0.3, 0.0, 1.6), 18.0, mats, mesh_fn, 5400 + island_index)
 	StylizedGroundRuinsKit.add_rubble_cluster(parent, Vector3(-radius * 0.18, 0.0, 1.4), mats, mesh_fn, 6000 + int(radius * 10.0), 3)
+	StylizedVegetationGenerator.dress_target_island(parent, radius, island_index, mats, mesh_fn)
 
 
 static func _add_teleport_pad(parent: Node3D, mats: Dictionary, mesh_fn: Callable, transparent_fn: Callable) -> void:
