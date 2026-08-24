@@ -18,6 +18,7 @@ static func apply_palette(
 	mats["stone_dark"] = StylizedTypedAccess.opaque_material(material_fn, Color("6f6b74"), 0.92, 0.0)
 	mats["stone_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("b7b0a6"), 0.84, 0.0)
 	mats["path_stone"] = StylizedTypedAccess.opaque_material(material_fn, Color("b5a898"), 0.88, 0.0)
+	mats["stone_warm"] = StylizedTypedAccess.opaque_material(material_fn, Color("9a8f7f"), 0.88, 0.0)
 	mats["dirt"] = StylizedTypedAccess.opaque_material(material_fn, Color("7a5d45"), 0.94, 0.0)
 	mats["wood"] = StylizedTypedAccess.opaque_material(material_fn, Color("6a4228"), 0.86, 0.0)
 	mats["wood_light"] = StylizedTypedAccess.opaque_material(material_fn, Color("9a5f36"), 0.8, 0.0)
@@ -48,7 +49,7 @@ static func apply_palette(
 	mats["rock"] = mats["stone_main"]
 	mats["rock_mid"] = mats["stone_dark"]
 	mats["rock_dark"] = mats["stone_dark"]
-	mats["cliff_warm"] = mats["stone_light"]
+	mats["cliff_warm"] = mats["stone_warm"]
 	mats["edge_moss"] = mats["grass_dark"]
 	mats["crystal"] = mats["crystal_violet"]
 	mats["violet"] = mats["portal"]
@@ -59,7 +60,7 @@ static func apply_palette(
 
 static func _configure_stylized_surface_flags(mats: Dictionary) -> void:
 	var grass_keys: Array[String] = ["grass_main", "grass_light", "grass_dark", "distant_grass"]
-	var stone_keys: Array[String] = ["stone_main", "stone_dark", "stone_light", "path_stone", "distant_rock"]
+	var stone_keys: Array[String] = ["stone_main", "stone_dark", "stone_light", "stone_warm", "path_stone", "distant_rock"]
 	for key in grass_keys:
 		var grass_mat: StandardMaterial3D = mats[key] as StandardMaterial3D
 		grass_mat.vertex_color_use_as_albedo = true

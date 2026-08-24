@@ -876,7 +876,7 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 		elif island_index == 1:
 			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers)
 		elif target_side:
-			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius)
+			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius, island_index)
 		else:
 			StylizedWorldDecorator.decorate_playable_island(root, island_index, mats, Callable(self, "_mesh"), random, island_radius)
 		return
