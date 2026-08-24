@@ -29,7 +29,7 @@ func start_launch(_lootling:String, _cannon:String, _world_key:="wolkengarten"):
 	state.refresh_energy()
 	if state.energy.current <= 0: return {"ok":false, "error":"No energy available."}
 	state.energy.current -= 1
-	if _world_key not in ["wolkengarten","crystal_forge"]:return {"ok":false,"error":"Unknown expedition."}
+	if _world_key not in ["wolkengarten","crystal_forge","v41_benchmark"]:return {"ok":false,"error":"Unknown expedition."}
 	var session_id:=_id();var session:={"ok":true,"session_id":session_id,"seed":random.randi(),"expires_unix":int(Time.get_unix_time_from_system())+900,"max_coins":1500,"max_crystals":10,"lootling":_lootling,"cannon":_cannon,"world_key":_world_key,"level_key":"kristallschmiede_expedition_v1" if _world_key=="crystal_forge" else "wolkengarten_expedition_v1"}
 	launch_sessions[session_id]=session.duplicate(true)
 	state._save_local_state()

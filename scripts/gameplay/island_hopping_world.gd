@@ -34,6 +34,11 @@ const CRYSTAL_ROUTE_CENTERS := [
 	Vector3(0.0, 49.0, -222.0),
 ]
 const CRYSTAL_ROUTE_RADII := [13.5, 12.5, 13.0, 12.5, 13.5, 15.5]
+const V41_ROUTE_CENTERS := [
+	Vector3(0.0, 0.0, 8.0),
+	Vector3(1.5, 3.5, -24.0),
+]
+const V41_ROUTE_RADII := [15.5, 11.0]
 const SOURCE_CENTER := Vector3(0.0, 0.0, 8.0)
 const TARGET_CENTER := Vector3(1.0, 7.0, -34.0)
 const DISTANT_CENTER := Vector3(-14.0, 15.0, -77.0)
@@ -71,6 +76,7 @@ const StylizedVFXController = preload("res://scripts/environment/stylized/styliz
 const StylizedMegaIslandComposer = preload("res://scripts/environment/stylized/stylized_mega_island_composer.gd")
 const MegaIslandCollision = preload("res://scripts/environment/stylized/mega_island_collision.gd")
 const StylizedArchitectureGenerator = preload("res://scripts/environment/stylized/stylized_architecture_generator.gd")
+const V41VisualBenchmark = preload("res://scripts/environment/stylized/benchmark/v41_visual_benchmark.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -147,6 +153,7 @@ var moving_obstacles: Array = []
 var airships: Array = []
 var wind_streamers: Array = []
 var mega_island_metadata: Dictionary = {}
+var v41_debug_visuals := false
 
 var camera: Camera3D
 var sun: DirectionalLight3D
@@ -220,6 +227,12 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 		expedition_key = "crystal_forge"
 		route_centers = CRYSTAL_ROUTE_CENTERS.duplicate()
 		route_radii = CRYSTAL_ROUTE_RADII.duplicate()
+	elif expedition_key == "v41_benchmark":
+		expedition_key = "v41_benchmark"
+		route_centers = V41_ROUTE_CENTERS.duplicate()
+		route_radii = V41_ROUTE_RADII.duplicate()
+		v41_debug_visuals = bool(value.get("v41_debug_visuals", false))
+		set_composition_thickness([1.48, 1.28])
 	else:
 		expedition_key = "wolkengarten"
 		route_centers = ROUTE_CENTERS.duplicate()
@@ -252,8 +265,15 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	_set_state(HopState.ON_FOOT)
 	if _uses_stylized_v18():
 		bootstrap_gameplay_camera()
-	instruction_changed.emit(("KRISTALLSCHMIEDE" if expedition_key == "crystal_forge" else "WOLKENGARTEN") + "  •  ERKUNDE 6 INSELN  •  LAUFE ZUR KANONE")
+	instruction_changed.emit(
+		("V41 BENCHMARK" if expedition_key == "v41_benchmark"
+		else "KRISTALLSCHMIEDE" if expedition_key == "crystal_forge"
+		else "WOLKENGARTEN") + "  •  ERKUNDE 6 INSELN  •  LAUFE ZUR KANONE"
+	)
 	_update_action_prompt()
+	if _uses_v41_benchmark():
+		set_meta("v41_benchmark_applied", true)
+		set_meta("v41_visual_version", V41VisualBenchmark.VisualVersion)
 	if is_pvp:
 		player.global_position = cannon_root.global_position + Vector3(-0.8, 0.0, 1.0)
 		call_deferred("primary_action")
@@ -561,18 +581,21 @@ func _update_pooled_fx(delta: float) -> void:
 func _build_islands() -> void:
 	for i in range(route_centers.size()):
 		_add_floating_island(route_centers[i], route_radii[i], _route_island_thickness(i), true, i)
-		_decorate_island(route_centers[i], i > 0, i)
-		_add_biome_landmark(route_centers[i], i)
-		if not (_uses_stylized_v18() and i == 0):
+		if not _uses_v41_benchmark():
+			_decorate_island(route_centers[i], i > 0, i)
+			_add_biome_landmark(route_centers[i], i)
+		if not (_uses_stylized_v18() and i == 0) and not _uses_v41_benchmark():
 			_add_jump_gate(route_centers[i], i)
-		if not (_uses_stylized_v18() and i == 0):
+		if not (_uses_stylized_v18() and i == 0) and not _uses_v41_benchmark():
 			_add_aether_beacon(route_centers[i], route_radii[i], i)
-		if i in [1, 3, 5] and quality_level >= 1:
+		if i in [1, 3, 5] and quality_level >= 1 and not _uses_v41_benchmark():
 			_add_waterfall(route_centers[i], route_radii[i], i)
-		if i > 0:
+		if i > 0 and not _uses_v41_benchmark():
 			var arch_side := -1.0 if i % 2 == 0 else 1.0
 			_add_arch(route_centers[i] + Vector3(arch_side * (route_radii[i] - 3.2), 1.3, 0.2), i)
-	if _uses_stylized_v18():
+	if _uses_v41_benchmark():
+		V41VisualBenchmark.compose_background_islands(self, mats, Callable(self, "_mesh"), quality_level, int(session.get("seed", 7331)))
+	elif _uses_stylized_v18():
 		for vista in StylizedWorldComposition.vista_entries():
 			_add_floating_island(vista["center"], vista["radius"], vista["thickness"], false, vista["index"])
 			if vista.get("landmark", false):
@@ -646,7 +669,11 @@ func debug_wait_flight_resolve(max_time: float, step: float) -> bool:
 
 
 func _uses_stylized_v18() -> bool:
-	return USE_STYLIZED_V18 and expedition_key == "wolkengarten"
+	return USE_STYLIZED_V18 and expedition_key in ["wolkengarten", "v41_benchmark"]
+
+
+func _uses_v41_benchmark() -> bool:
+	return expedition_key == "v41_benchmark"
 
 
 func _reset_gameplay_input_state() -> void:
@@ -777,10 +804,14 @@ func evaluate_camera_composition() -> Dictionary:
 
 
 func _stylized_player_spawn_offset() -> Vector3:
+	if _uses_v41_benchmark():
+		return Vector3(V41VisualBenchmark.player_spawn_offset().x, FLOOR_OFFSET, V41VisualBenchmark.player_spawn_offset().z)
 	return Vector3(StylizedWorldComposition.PLAYER_SPAWN_OFFSET.x, FLOOR_OFFSET, StylizedWorldComposition.PLAYER_SPAWN_OFFSET.z)
 
 
 func _stylized_cannon_offset() -> Vector3:
+	if _uses_v41_benchmark():
+		return V41VisualBenchmark.cannon_offset()
 	return StylizedWorldComposition.CANNON_OFFSET
 
 
@@ -1028,6 +1059,30 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 			Callable(self, "_transparent_material"),
 			wind_streamers
 		)
+	elif _uses_v41_benchmark() and island_index == 0:
+		V41VisualBenchmark.compose_main_island(
+			root,
+			radius,
+			thickness,
+			mats,
+			Callable(self, "_mesh"),
+			Callable(self, "_transparent_material"),
+			quality_level,
+			int(session.get("seed", 7331)) + shot_number * 97,
+			wind_streamers,
+			v41_debug_visuals
+		)
+	elif _uses_v41_benchmark() and island_index == 1:
+		V41VisualBenchmark.compose_endpoint_island(
+			root,
+			radius,
+			thickness,
+			mats,
+			Callable(self, "_mesh"),
+			Callable(self, "_transparent_material"),
+			int(session.get("seed", 7331)) + shot_number * 97,
+			wind_streamers
+		)
 	elif _uses_stylized_v18():
 		StylizedIslandGenerator.build(root, radius, thickness, playable, island_index, mats, quality_level, route_variant, Callable(self, "_mesh"))
 	else:
@@ -1037,6 +1092,8 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 		root.add_child(body)
 		if _uses_stylized_v18() and StylizedMegaIslandComposer.is_mega_island_index(island_index):
 			MegaIslandCollision.build_collision(body, mega_island_metadata.get("modules", []), thickness)
+		elif _uses_v41_benchmark():
+			V41VisualBenchmark.build_collision(body, radius, thickness)
 		else:
 			var collider := CollisionShape3D.new()
 			var shape := CylinderShape3D.new()
@@ -1845,7 +1902,7 @@ func _build_target_contents() -> void:
 			island_pickups.append(item)
 			objective_tokens.append(item)
 	target_chest = route_chests[0]
-	target_cannon = route_cannons[1]
+	target_cannon = route_cannons[mini(1, route_cannons.size() - 1)]
 
 
 func _create_chest() -> Node3D:
