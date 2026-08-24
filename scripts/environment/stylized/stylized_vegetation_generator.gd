@@ -4,6 +4,9 @@ class_name StylizedVegetationGenerator
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const StylizedStartComposition = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
 const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
+const Density = preload("res://scripts/environment/stylized/stylized_vegetation_density.gd")
+
+const StylizedWorldComposition = preload("res://scripts/environment/stylized/stylized_world_composition.gd")
 
 enum FlowerPreset { PINK_CLUSTER, VIOLET_CLUSTER, WHITE_CLUSTER, MIXED_SOFT_CLUSTER }
 enum GrassVariant { SHORT, MEDIUM, EDGE }
@@ -278,6 +281,203 @@ static func create_shrub(
 	return shrub
 
 
+static func create_tree_cluster(
+	parent: Node3D,
+	center: Vector3,
+	main_variant: TreeVariant,
+	support_variant: TreeVariant,
+	seed: int,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	main_scale: float = 1.0,
+	support_scale: float = 0.82
+) -> void:
+	create_tree(parent, center + Vector3(-0.35, 0.0, 0.18), main_variant, main_scale, seed, mats, mesh_fn)
+	create_tree(parent, center + Vector3(0.42, 0.0, -0.12), support_variant, support_scale, seed + 17, mats, mesh_fn)
+
+
+static func create_grass_multimesh_patch(
+	parent: Node3D,
+	center: Vector3,
+	radius: float,
+	instance_count: int,
+	seed: int,
+	mats: Dictionary,
+	variant: GrassVariant = GrassVariant.SHORT
+) -> void:
+	if instance_count <= 0:
+		return
+	var patch := Node3D.new()
+	patch.name = "GrassPatch"
+	patch.set_meta("vegetation_kind", "grass")
+	patch.position = center
+	parent.add_child(patch)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _get_blade_mesh(variant)
+	mm.instance_count = instance_count
+	var rng := _rng(6400 + seed)
+	var mat_key: String = "grass_dark" if variant == GrassVariant.EDGE else "grass_main"
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = _mat(mats, mat_key, "grass_main")
+	patch.add_child(mmi)
+	for i in range(instance_count):
+		var angle: float = rng.randf_range(0.0, TAU)
+		var dist: float = rng.randf_range(0.0, radius)
+		var offset := Vector3(cos(angle) * dist, 0.0, sin(angle) * dist)
+		var rot_y: float = rad_to_deg(angle)
+		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.12, 0.12), rot_y, rng.randf_range(-0.18, 0.18)))
+		var scale_v: float = rng.randf_range(0.82, 1.08)
+		mm.set_instance_transform(i, Transform3D(basis.scaled(Vector3.ONE * scale_v), offset))
+
+
+static func _place_start_grass(
+	parent: Node3D,
+	pos: Vector3,
+	variant: GrassVariant,
+	scale_value: float,
+	seed: int,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	exclusions: Array,
+	quality_level: int,
+	allow_path_edge: bool = false
+) -> void:
+	if not Density.can_place_start(pos, exclusions, allow_path_edge):
+		return
+	if not Density.should_place(seed, 0.92, quality_level):
+		return
+	create_grass_clump(parent, pos, variant, scale_value, seed, mats, mesh_fn)
+
+
+static func _place_start_flower(
+	parent: Node3D,
+	pos: Vector3,
+	preset: FlowerPreset,
+	seed: int,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	exclusions: Array,
+	quality_level: int,
+	allow_path_edge: bool = false
+) -> void:
+	if not Density.can_place_start(pos, exclusions, allow_path_edge):
+		return
+	if not Density.should_place(seed, 0.88, quality_level):
+		return
+	create_flower_cluster(parent, pos, preset, seed, mats, mesh_fn)
+
+
+static func dress_start_island(
+	parent: Node3D,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	quality_level: int = 2,
+	island_radius: float = 9.0
+) -> void:
+	var exclusions: Array = Density.start_island_exclusions()
+	# Zone A — spawn: very low density.
+	_place_start_grass(parent, Vector3(2.6, 0.0, 2.2), GrassVariant.SHORT, 0.82, 101, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, Vector3(3.2, 0.0, 1.0), FlowerPreset.WHITE_CLUSTER, 102, mats, mesh_fn, exclusions, quality_level)
+	# Zone B — path edges (medium, never center).
+	var path_accents: Array[Dictionary] = [
+		{"pos": Vector3(-1.85, 0.0, 2.15), "grass": GrassVariant.SHORT},
+		{"pos": Vector3(1.45, 0.0, 1.75), "grass": GrassVariant.MEDIUM},
+		{"pos": Vector3(-1.55, 0.0, 1.95), "grass": GrassVariant.SHORT, "flower": FlowerPreset.PINK_CLUSTER},
+		{"pos": Vector3(1.25, 0.0, 1.55), "grass": GrassVariant.MEDIUM},
+		{"pos": Vector3(-1.35, 0.0, 1.85), "grass": GrassVariant.SHORT},
+		{"pos": Vector3(-0.05, 0.0, 0.35), "grass": GrassVariant.MEDIUM},
+		{"pos": Vector3(1.35, 0.0, -0.05), "flower": FlowerPreset.MIXED_SOFT_CLUSTER},
+		{"pos": Vector3(0.95, 0.0, -0.55), "grass": GrassVariant.SHORT},
+		{"pos": Vector3(-0.85, 0.0, -0.35), "grass": GrassVariant.EDGE},
+		{"pos": Vector3(0.45, 0.0, -1.55), "grass": GrassVariant.SHORT},
+		{"pos": Vector3(-0.95, 0.0, -1.85), "flower": FlowerPreset.WHITE_CLUSTER},
+		{"pos": Vector3(0.85, 0.0, -2.05), "grass": GrassVariant.MEDIUM},
+		{"pos": Vector3(0.35, 0.0, -3.25), "grass": GrassVariant.EDGE},
+		{"pos": Vector3(-1.05, 0.0, -1.15), "flower": FlowerPreset.PINK_CLUSTER},
+		{"pos": Vector3(1.55, 0.0, 0.15), "grass": GrassVariant.SHORT},
+		{"pos": Vector3(-1.65, 0.0, 0.55), "grass": GrassVariant.MEDIUM},
+	]
+	for i in range(path_accents.size()):
+		if quality_level < 2 and i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		var accent: Dictionary = path_accents[i]
+		var pos: Vector3 = accent["pos"]
+		if accent.has("grass"):
+			create_grass_clump(parent, pos, accent["grass"], 0.9, 200 + i, mats, mesh_fn)
+		if accent.has("flower"):
+			create_flower_cluster(parent, pos + Vector3(0.2, 0, 0.14), accent["flower"], 220 + i, mats, mesh_fn)
+	# Zone C — chest (medium).
+	create_shrub(parent, StylizedStartComposition.CHEST_POS + Vector3(0.9, 0.0, 0.48), 0.95, 301, mats, mesh_fn)
+	create_shrub(parent, StylizedStartComposition.CHEST_POS + Vector3(-0.95, 0.0, -0.35), 0.82, 302, mats, mesh_fn)
+	_place_start_flower(parent, StylizedStartComposition.CHEST_POS + Vector3(-0.75, 0.0, 0.35), FlowerPreset.PINK_CLUSTER, 303, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, StylizedStartComposition.CHEST_POS + Vector3(0.4, 0.0, -0.65), FlowerPreset.MIXED_SOFT_CLUSTER, 304, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, StylizedStartComposition.CHEST_POS + Vector3(-0.35, 0.0, -0.45), GrassVariant.SHORT, 0.88, 305, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, StylizedStartComposition.CHEST_POS + Vector3(0.55, 0.0, 0.55), GrassVariant.MEDIUM, 0.82, 306, mats, mesh_fn, exclusions, quality_level)
+	# Zone D — cannon (low).
+	_place_start_grass(parent, Vector3(2.15, 0.0, -2.55), GrassVariant.SHORT, 0.78, 501, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, Vector3(0.85, 0.0, -3.15), GrassVariant.SHORT, 0.8, 502, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, Vector3(-0.45, 0.0, -3.55), GrassVariant.SHORT, 0.78, 503, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, Vector3(2.35, 0.0, -1.45), FlowerPreset.WHITE_CLUSTER, 504, mats, mesh_fn, exclusions, quality_level)
+	# Zone E — pad (low).
+	_place_start_flower(parent, StylizedStartComposition.PAD_POS + Vector3(-0.55, 0.0, 0.55), FlowerPreset.VIOLET_CLUSTER, 601, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, StylizedStartComposition.PAD_POS + Vector3(0.6, 0.0, -0.45), FlowerPreset.PINK_CLUSTER, 602, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, StylizedStartComposition.PAD_POS + Vector3(0.45, 0.0, 0.65), GrassVariant.MEDIUM, 0.86, 603, mats, mesh_fn, exclusions, quality_level)
+	# Zone F — ruin / sign (medium-high).
+	_place_start_grass(parent, StylizedStartComposition.SIGN_POS + Vector3(-0.55, 0.0, -0.35), GrassVariant.EDGE, 0.9, 401, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, StylizedStartComposition.SIGN_POS + Vector3(0.45, 0.0, -0.25), FlowerPreset.WHITE_CLUSTER, 402, mats, mesh_fn, exclusions, quality_level)
+	create_shrub(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(0.75, 0.0, -0.55), 0.92, 403, mats, mesh_fn)
+	create_shrub(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(-0.85, 0.0, 0.35), 0.85, 404, mats, mesh_fn)
+	create_vine_cluster(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(-0.35, 0.55, 0.2), -18.0, 1.0, 405, mats, mesh_fn)
+	create_vine_cluster(parent, StylizedStartComposition.PILLAR_POS + Vector3(-0.25, 0.35, 0.15), 12.0, 0.95, 406, mats, mesh_fn)
+	_place_start_grass(parent, StylizedStartComposition.RUIN_POS + Vector3(0.55, 0.0, -0.45), GrassVariant.MEDIUM, 0.88, 407, mats, mesh_fn, exclusions, quality_level)
+	_place_start_flower(parent, StylizedStartComposition.RUIN_POS + Vector3(-0.35, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 408, mats, mesh_fn, exclusions, quality_level)
+	create_flower_cluster(parent, StylizedStartComposition.SIGN_POS + Vector3(0.65, 0.0, 0.35), FlowerPreset.PINK_CLUSTER, 409, mats, mesh_fn)
+	create_flower_cluster(parent, StylizedStartComposition.PLINTH_POS + Vector3(0.45, 0.0, 0.25), FlowerPreset.WHITE_CLUSTER, 410, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(4.5, 0.0, 1.8), FlowerPreset.MIXED_SOFT_CLUSTER, 411, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(-3.2, 0.0, 2.8), FlowerPreset.PINK_CLUSTER, 412, mats, mesh_fn)
+	# Trees — silhouette anchors (clustered).
+	create_tree_cluster(parent, StylizedStartComposition.TREE_POS, TreeVariant.TREE_A, TreeVariant.TREE_C, 701, mats, mesh_fn, 1.05, 0.78)
+	create_tree(parent, Vector3(5.2, 0.0, -0.8), TreeVariant.TREE_B, 0.88, 702, mats, mesh_fn)
+	create_tree(parent, Vector3(-4.8, 0.0, -2.2), TreeVariant.TREE_C, 0.75, 703, mats, mesh_fn)
+	# Crystal garden accents.
+	create_shrub(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.55, 0.0, 0.35), 0.9, 710, mats, mesh_fn)
+	_place_start_flower(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(-0.45, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 711, mats, mesh_fn, exclusions, quality_level)
+	_place_start_grass(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.25, 0.0, -0.35), GrassVariant.SHORT, 0.86, 712, mats, mesh_fn, exclusions, quality_level)
+	# Zone G — cliff edge clusters (~35% coverage).
+	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 16, 0.42, 800)
+	for i in range(edge_positions.size()):
+		if quality_level < 2 and i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		var pos: Vector3 = edge_positions[i]
+		if not Density.can_place_start(pos, exclusions):
+			continue
+		match i % 4:
+			0:
+				create_grass_multimesh_patch(parent, pos, 0.45, 6 if quality_level >= 2 else 4, 810 + i, mats, GrassVariant.SHORT)
+			1:
+				create_grass_clump(parent, pos, GrassVariant.EDGE, 0.92, 820 + i, mats, mesh_fn)
+			2:
+				create_flower_cluster(parent, pos + Vector3(0.12, 0, 0.08), FlowerPreset.MIXED_SOFT_CLUSTER, 830 + i, mats, mesh_fn)
+			_:
+				create_grass_clump(parent, pos + Vector3(0.08, 0, -0.06), GrassVariant.SHORT, 0.86, 840 + i, mats, mesh_fn)
+	# Composition anchor clusters.
+	for i in range(StylizedStartComposition.FLOWER_CLUSTERS.size()):
+		if not Density.should_place(900 + i, 0.95, quality_level):
+			continue
+		var preset: FlowerPreset = [FlowerPreset.PINK_CLUSTER, FlowerPreset.MIXED_SOFT_CLUSTER, FlowerPreset.WHITE_CLUSTER][i % 3]
+		var fpos: Vector3 = StylizedStartComposition.FLOWER_CLUSTERS[i]
+		if Density.can_place_start(fpos, exclusions):
+			create_flower_cluster(parent, fpos, preset, 900 + i, mats, mesh_fn)
+	for i in range(StylizedStartComposition.GRASS_CLUSTERS.size()):
+		if quality_level < 2 and i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		var gpos: Vector3 = StylizedStartComposition.GRASS_CLUSTERS[i]
+		if Density.can_place_start(gpos, exclusions):
+			create_grass_clump(parent, gpos, GrassVariant.MEDIUM, 0.94, 910 + i, mats, mesh_fn)
+
+
 static func create_vine_cluster(
 	parent: Node3D,
 	pos: Vector3,
@@ -327,77 +527,42 @@ static func create_edge_growth(
 			create_flower_cluster(parent, pos + Vector3(0.15, 0, 0.12), FlowerPreset.MIXED_SOFT_CLUSTER, base_seed + i + 50, mats, mesh_fn)
 
 
-static func dress_start_island(parent: Node3D, mats: Dictionary, mesh_fn: Callable) -> void:
-	# Zone A — spawn: very low density, away from player footprint.
-	create_grass_clump(parent, Vector3(2.8, 0.0, 2.6), GrassVariant.SHORT, 0.85, 101, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(3.4, 0.0, 1.2), FlowerPreset.WHITE_CLUSTER, 102, mats, mesh_fn)
-	# Zone B — path accents (alternating grass / flower / gap rhythm).
-	var path_accents: Array[Dictionary] = [
-		{"pos": Vector3(-1.35, 0.0, 1.85), "grass": GrassVariant.SHORT, "flower": FlowerPreset.PINK_CLUSTER},
-		{"pos": Vector3(-0.05, 0.0, 0.35), "grass": GrassVariant.MEDIUM},
-		{"pos": Vector3(0.95, 0.0, -0.55), "flower": FlowerPreset.MIXED_SOFT_CLUSTER},
-		{"pos": Vector3(0.45, 0.0, -1.55), "grass": GrassVariant.SHORT},
-		{"pos": Vector3(-0.55, 0.0, -2.45), "flower": FlowerPreset.WHITE_CLUSTER},
-		{"pos": Vector3(0.35, 0.0, -3.25), "grass": GrassVariant.EDGE},
+static func dress_hero_midground(
+	parent: Node3D,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	quality_level: int = 2,
+	island_radius: float = 9.6
+) -> void:
+	create_tree_cluster(parent, Vector3(5.4, 0.0, 2.1), TreeVariant.TREE_B, TreeVariant.TREE_C, 1001, mats, mesh_fn, 0.98, 0.78)
+	create_tree(parent, Vector3(-5.2, 0.0, 3.0), TreeVariant.TREE_A, 0.88, 1002, mats, mesh_fn)
+	create_tree(parent, Vector3(2.8, 0.0, 5.8), TreeVariant.TREE_C, 0.82, 1003, mats, mesh_fn)
+	create_tree(parent, Vector3(-2.2, 0.0, 5.4), TreeVariant.TREE_B, 0.76, 1004, mats, mesh_fn)
+	create_shrub(parent, Vector3(-0.5, 0.0, 5.2), 1.0, 1005, mats, mesh_fn)
+	create_shrub(parent, Vector3(1.2, 0.0, 5.5), 0.92, 1006, mats, mesh_fn)
+	create_shrub(parent, Vector3(4.2, 0.0, 3.8), 0.88, 1007, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(-1.1, 0.0, 5.0), FlowerPreset.VIOLET_CLUSTER, 1008, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(3.8, 0.0, 4.3), FlowerPreset.PINK_CLUSTER, 1009, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(4.5, 0.0, 4.9), FlowerPreset.MIXED_SOFT_CLUSTER, 1010, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(0.4, 0.0, 3.6), FlowerPreset.WHITE_CLUSTER, 1011, mats, mesh_fn)
+	create_vine_cluster(parent, Vector3(3.2, 0.65, 4.5), -12.0, 1.05, 1012, mats, mesh_fn)
+	create_vine_cluster(parent, Vector3(-3.5, 0.45, 4.2), 18.0, 0.95, 1013, mats, mesh_fn)
+	var grass_spots: Array[Vector3] = [
+		Vector3(2.2, 0.0, 3.4), Vector3(-3.8, 0.0, 3.0), Vector3(1.0, 0.0, 4.8),
+		Vector3(-2.4, 0.0, 4.2), Vector3(5.1, 0.0, 1.8), Vector3(-4.8, 0.0, 1.5),
 	]
-	for i in range(path_accents.size()):
-		var accent: Dictionary = path_accents[i]
-		if accent.has("grass"):
-			create_grass_clump(parent, accent["pos"], accent["grass"], 0.92, 200 + i, mats, mesh_fn)
-		if accent.has("flower"):
-			create_flower_cluster(parent, accent["pos"] + Vector3(0.18, 0, 0.14), accent["flower"], 220 + i, mats, mesh_fn)
-	# Zone C — chest garden.
-	create_shrub(parent, StylizedStartComposition.CHEST_POS + Vector3(0.85, 0.0, 0.45), 0.95, 301, mats, mesh_fn)
-	create_flower_cluster(parent, StylizedStartComposition.CHEST_POS + Vector3(-0.75, 0.0, 0.35), FlowerPreset.PINK_CLUSTER, 302, mats, mesh_fn)
-	create_flower_cluster(parent, StylizedStartComposition.CHEST_POS + Vector3(0.4, 0.0, -0.65), FlowerPreset.MIXED_SOFT_CLUSTER, 303, mats, mesh_fn)
-	create_grass_clump(parent, StylizedStartComposition.CHEST_POS + Vector3(-0.35, 0.0, -0.45), GrassVariant.SHORT, 0.88, 304, mats, mesh_fn)
-	create_grass_clump(parent, StylizedStartComposition.CHEST_POS + Vector3(0.55, 0.0, 0.55), GrassVariant.MEDIUM, 0.82, 305, mats, mesh_fn)
-	# Zone D — sign / ruin.
-	create_grass_clump(parent, StylizedStartComposition.SIGN_POS + Vector3(-0.55, 0.0, -0.35), GrassVariant.EDGE, 0.9, 401, mats, mesh_fn)
-	create_flower_cluster(parent, StylizedStartComposition.SIGN_POS + Vector3(0.45, 0.0, -0.25), FlowerPreset.WHITE_CLUSTER, 402, mats, mesh_fn)
-	create_shrub(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(0.7, 0.0, -0.5), 0.88, 403, mats, mesh_fn)
-	create_vine_cluster(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(-0.35, 0.55, 0.2), -18.0, 1.0, 404, mats, mesh_fn)
-	# Zone E — cannon approach: sparse ground accents only.
-	create_grass_clump(parent, Vector3(0.85, 0.0, -3.15), GrassVariant.SHORT, 0.8, 501, mats, mesh_fn)
-	create_grass_clump(parent, Vector3(-0.45, 0.0, -3.55), GrassVariant.SHORT, 0.78, 502, mats, mesh_fn)
-	# Zone F — pad / portal energy accents.
-	create_flower_cluster(parent, StylizedStartComposition.PAD_POS + Vector3(-0.55, 0.0, 0.55), FlowerPreset.VIOLET_CLUSTER, 601, mats, mesh_fn)
-	create_flower_cluster(parent, StylizedStartComposition.PAD_POS + Vector3(0.6, 0.0, -0.45), FlowerPreset.PINK_CLUSTER, 602, mats, mesh_fn)
-	create_grass_clump(parent, StylizedStartComposition.PAD_POS + Vector3(0.45, 0.0, 0.65), GrassVariant.MEDIUM, 0.86, 603, mats, mesh_fn)
-	# Landmark anchors.
-	create_tree(parent, StylizedStartComposition.TREE_POS, TreeVariant.TREE_A, 1.05, 701, mats, mesh_fn)
-	create_tree(parent, Vector3(5.2, 0.0, -0.8), TreeVariant.TREE_B, 0.82, 702, mats, mesh_fn)
-	create_shrub(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.55, 0.0, 0.35), 0.9, 703, mats, mesh_fn)
-	create_flower_cluster(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(-0.45, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 704, mats, mesh_fn)
-	# Edge silhouettes.
-	var edge_points: Array = [
-		{"pos": Vector3(-4.2, 0.0, 2.8), "scale": 0.95, "flower": true},
-		{"pos": Vector3(3.8, 0.0, 2.2), "scale": 0.9},
-		{"pos": Vector3(-1.8, 0.0, -3.9), "scale": 1.0, "flower": true},
-		{"pos": Vector3(-5.5, 0.0, -0.5), "scale": 0.88},
-		{"pos": Vector3(4.8, 0.0, -2.2), "scale": 0.86},
-	]
-	create_edge_growth(parent, edge_points, mats, mesh_fn, 800)
-	# Residual soft clusters from composition anchors.
-	for i in range(StylizedStartComposition.FLOWER_CLUSTERS.size()):
-		var preset: FlowerPreset = [FlowerPreset.PINK_CLUSTER, FlowerPreset.MIXED_SOFT_CLUSTER, FlowerPreset.WHITE_CLUSTER][i % 3]
-		create_flower_cluster(parent, StylizedStartComposition.FLOWER_CLUSTERS[i], preset, 900 + i, mats, mesh_fn)
-	for i in range(StylizedStartComposition.GRASS_CLUSTERS.size()):
-		create_grass_clump(parent, StylizedStartComposition.GRASS_CLUSTERS[i], GrassVariant.MEDIUM, 0.94, 910 + i, mats, mesh_fn)
-
-
-static func dress_hero_midground(parent: Node3D, mats: Dictionary, mesh_fn: Callable) -> void:
-	create_tree(parent, Vector3(5.8, 0.0, 2.4), TreeVariant.TREE_B, 0.95, 1001, mats, mesh_fn)
-	create_tree(parent, Vector3(-4.6, 0.0, 3.2), TreeVariant.TREE_C, 0.78, 1002, mats, mesh_fn)
-	create_shrub(parent, Vector3(-0.5, 0.0, 5.2), 1.0, 1003, mats, mesh_fn)
-	create_shrub(parent, Vector3(1.2, 0.0, 5.5), 0.92, 1004, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(-1.1, 0.0, 5.0), FlowerPreset.VIOLET_CLUSTER, 1005, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(3.8, 0.0, 4.3), FlowerPreset.PINK_CLUSTER, 1006, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(4.5, 0.0, 4.9), FlowerPreset.MIXED_SOFT_CLUSTER, 1007, mats, mesh_fn)
-	create_vine_cluster(parent, Vector3(3.2, 0.65, 4.5), -12.0, 1.05, 1008, mats, mesh_fn)
-	for i in range(4):
-		var pos: Vector3 = [Vector3(2.2, 0.0, 3.4), Vector3(-3.8, 0.0, 3.0), Vector3(1.0, 0.0, 4.8), Vector3(-2.4, 0.0, 4.2)][i]
-		create_grass_clump(parent, pos, GrassVariant.MEDIUM if i % 2 == 0 else GrassVariant.SHORT, 0.9, 1010 + i, mats, mesh_fn)
+	for i in range(grass_spots.size()):
+		if i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		create_grass_clump(parent, grass_spots[i], GrassVariant.MEDIUM if i % 2 == 0 else GrassVariant.SHORT, 0.9, 1020 + i, mats, mesh_fn)
+	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 12, 0.32, 1030)
+	for i in range(edge_positions.size()):
+		if i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		if i % 2 == 0:
+			create_grass_multimesh_patch(parent, edge_positions[i], 0.38, 4, 1040 + i, mats, GrassVariant.SHORT)
+		else:
+			create_flower_cluster(parent, edge_positions[i], FlowerPreset.VIOLET_CLUSTER, 1050 + i, mats, mesh_fn)
 
 
 static func dress_playable_island(
@@ -405,17 +570,33 @@ static func dress_playable_island(
 	island_index: int,
 	radius: float,
 	mats: Dictionary,
-	mesh_fn: Callable
+	mesh_fn: Callable,
+	quality_level: int = 2
 ) -> void:
 	if island_index == 1:
 		return
 	var spread: float = radius * 0.42
-	var tree_variant: TreeVariant = [TreeVariant.TREE_A, TreeVariant.TREE_B, TreeVariant.TREE_C][island_index % 3]
-	create_tree(parent, Vector3(-spread, 0.0, 0.8), tree_variant, 0.82, 2000 + island_index, mats, mesh_fn)
-	create_grass_clump(parent, Vector3(spread * 0.35, 0.0, 1.4), GrassVariant.MEDIUM, 0.85, 2010 + island_index, mats, mesh_fn)
-	create_flower_cluster(parent, Vector3(-spread * 0.4, 0.0, 1.8), FlowerPreset.MIXED_SOFT_CLUSTER, 2020 + island_index, mats, mesh_fn)
-	if island_index >= 3:
-		create_shrub(parent, Vector3(spread * 0.2, 0.0, 0.5), 0.8, 2030 + island_index, mats, mesh_fn)
+	match island_index % 4:
+		2:
+			create_tree_cluster(parent, Vector3(-spread * 0.85, 0.0, 0.6), TreeVariant.TREE_A, TreeVariant.TREE_B, 2000 + island_index, mats, mesh_fn, 0.88, 0.72)
+			create_tree(parent, Vector3(spread * 0.55, 0.0, 1.4), TreeVariant.TREE_C, 0.78, 2010 + island_index, mats, mesh_fn)
+		3:
+			create_tree(parent, Vector3(-spread, 0.0, 0.8), TreeVariant.TREE_B, 0.82, 2000 + island_index, mats, mesh_fn)
+			create_shrub(parent, Vector3(spread * 0.35, 0.0, 1.2), 0.88, 2011 + island_index, mats, mesh_fn)
+			create_shrub(parent, Vector3(-spread * 0.2, 0.0, 1.6), 0.8, 2012 + island_index, mats, mesh_fn)
+		0:
+			create_flower_cluster(parent, Vector3(spread * 0.25, 0.0, 1.5), FlowerPreset.PINK_CLUSTER, 2020 + island_index, mats, mesh_fn)
+			create_flower_cluster(parent, Vector3(-spread * 0.35, 0.0, 1.9), FlowerPreset.WHITE_CLUSTER, 2021 + island_index, mats, mesh_fn)
+			create_tree(parent, Vector3(-spread * 0.7, 0.0, 0.5), TreeVariant.TREE_C, 0.8, 2000 + island_index, mats, mesh_fn)
+		_:
+			create_tree(parent, Vector3(-spread, 0.0, 0.8), TreeVariant.TREE_A, 0.82, 2000 + island_index, mats, mesh_fn)
+			create_shrub(parent, Vector3(spread * 0.2, 0.0, 0.5), 0.8, 2030 + island_index, mats, mesh_fn)
+	for i in range(4):
+		if i % Density.tier_skip_every_nth(2, quality_level) != 0:
+			continue
+		var angle: float = float(i) * TAU / 4.0 + float(island_index) * 0.4
+		var pos := Vector3(cos(angle) * spread * 0.65, 0.0, sin(angle) * spread * 0.55)
+		create_grass_clump(parent, pos, GrassVariant.MEDIUM if i % 2 == 0 else GrassVariant.SHORT, 0.86, 2040 + island_index * 10 + i, mats, mesh_fn)
 
 
 static func dress_target_island(
@@ -423,12 +604,48 @@ static func dress_target_island(
 	radius: float,
 	island_index: int,
 	mats: Dictionary,
-	mesh_fn: Callable
+	mesh_fn: Callable,
+	quality_level: int = 2
 ) -> void:
 	create_grass_clump(parent, Vector3(-radius * 0.2, 0.0, 1.6), GrassVariant.EDGE, 0.8, 3000 + island_index, mats, mesh_fn)
+	create_grass_clump(parent, Vector3(radius * 0.32, 0.0, 0.8), GrassVariant.MEDIUM, 0.85, 3001 + island_index, mats, mesh_fn)
 	create_flower_cluster(parent, Vector3(radius * 0.15, 0.0, 1.2), FlowerPreset.WHITE_CLUSTER, 3010 + island_index, mats, mesh_fn)
+	create_flower_cluster(parent, Vector3(-radius * 0.12, 0.0, 0.5), FlowerPreset.VIOLET_CLUSTER, 3011 + island_index, mats, mesh_fn)
 	if island_index % 2 == 0:
 		create_shrub(parent, Vector3(-radius * 0.28, 0.0, 0.6), 0.75, 3020 + island_index, mats, mesh_fn)
+		create_shrub(parent, Vector3(radius * 0.22, 0.0, 1.8), 0.7, 3021 + island_index, mats, mesh_fn)
+	if quality_level >= 2:
+		create_tree(parent, Vector3(-radius * 0.45, 0.0, 1.0), TreeVariant.TREE_B, 0.72, 3030 + island_index, mats, mesh_fn)
+
+
+static func dress_vista_island(
+	parent: Node3D,
+	vista_index: int,
+	radius: float,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	quality_level: int = 2
+) -> void:
+	if quality_level <= 0:
+		return
+	if vista_index % 2 == 0:
+		create_tree(parent, Vector3(radius * 0.25, 0.0, 0.0), TreeVariant.TREE_C, 0.62, 4000 + vista_index, mats, mesh_fn)
+	if vista_index % 3 == 1 and quality_level >= 2:
+		create_tree(parent, Vector3(-radius * 0.2, 0.0, 0.35), TreeVariant.TREE_A, 0.55, 4010 + vista_index, mats, mesh_fn)
+
+
+static func dress_hero_landmark_vegetation(
+	parent: Node3D,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	quality_level: int = 2
+) -> void:
+	create_tree_cluster(parent, Vector3(1.6, 0.0, -0.8), TreeVariant.TREE_B, TreeVariant.TREE_C, 8809, mats, mesh_fn, 0.72, 0.58)
+	create_tree(parent, Vector3(-1.4, 0.0, 0.6), TreeVariant.TREE_A, 0.65, 8811, mats, mesh_fn)
+	create_shrub(parent, Vector3(-1.0, 0.0, -0.5), 0.85, 8810, mats, mesh_fn)
+	if quality_level >= 2:
+		create_shrub(parent, Vector3(0.8, 0.0, 0.4), 0.72, 8812, mats, mesh_fn)
+		create_vine_cluster(parent, Vector3(-0.4, 0.5, 0.25), -10.0, 0.9, 8813, mats, mesh_fn)
 
 
 static func count_vegetation_nodes(root: Node) -> Dictionary:

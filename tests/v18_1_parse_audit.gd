@@ -10,6 +10,7 @@ const SCRIPT_PATHS: Array[String] = [
 	"res://scripts/environment/stylized/stylized_lighting.gd",
 	"res://scripts/environment/stylized/stylized_island_generator.gd",
 	"res://scripts/environment/stylized/stylized_vegetation_generator.gd",
+	"res://scripts/environment/stylized/stylized_vegetation_density.gd",
 	"res://scripts/environment/stylized/stylized_ruin_generator.gd",
 	"res://scripts/environment/stylized/stylized_crystal_generator.gd",
 	"res://scripts/environment/stylized/stylized_hero_models.gd",

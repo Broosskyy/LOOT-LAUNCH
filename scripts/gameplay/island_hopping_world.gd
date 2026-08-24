@@ -566,7 +566,13 @@ func _build_islands() -> void:
 				landmark_decor.name = "VistaLandmarkDecor"
 				landmark_decor.position = vista["center"]
 				add_child(landmark_decor)
-				StylizedWorldDecorator.decorate_hero_landmark(landmark_decor, mats, Callable(self, "_mesh"))
+				StylizedWorldDecorator.decorate_hero_landmark(landmark_decor, mats, Callable(self, "_mesh"), quality_level)
+			else:
+				var vista_decor := Node3D.new()
+				vista_decor.name = "VistaDecor_%d" % int(vista["index"])
+				vista_decor.position = vista["center"]
+				add_child(vista_decor)
+				StylizedWorldDecorator.decorate_vista_island(vista_decor, int(vista["index"]), float(vista["radius"]), mats, Callable(self, "_mesh"), quality_level)
 	elif not _uses_stylized_v18():
 		_add_floating_island(Vector3(30.0, 15.0, -57.0), 4.6, 0.9, false, 11)
 		_add_floating_island(Vector3(-34.0, 25.0, -106.0), 5.2, 1.0, false, 12)
@@ -974,13 +980,13 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 	if _uses_stylized_v18():
 		var island_radius: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)])
 		if island_index == 0:
-			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius)
+			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius, quality_level)
 		elif island_index == 1:
-			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers)
+			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers, quality_level, island_radius)
 		elif target_side:
-			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius, island_index)
+			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius, island_index, quality_level)
 		else:
-			StylizedWorldDecorator.decorate_playable_island(root, island_index, mats, Callable(self, "_mesh"), random, island_radius)
+			StylizedWorldDecorator.decorate_playable_island(root, island_index, mats, Callable(self, "_mesh"), random, island_radius, quality_level)
 		return
 	# Tall silhouettes frame the island at the sides instead of obscuring the
 	# centre line used by the cannon and its camera.
