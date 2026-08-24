@@ -66,6 +66,7 @@ const StylizedWorldDecorator = preload("res://scripts/environment/stylized/styli
 const StylizedCloudGenerator = preload("res://scripts/environment/stylized/stylized_cloud_generator.gd")
 const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
 const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
+const StylizedWorldComposition = preload("res://scripts/environment/stylized/stylized_world_composition.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -164,7 +165,42 @@ var route_chests: Array = []
 var aether_beacons: Array = []
 var waterfalls: Array = []
 var player_shadow: MeshInstance3D
+var route_composition_thickness: Array = []
 var mats: Dictionary = {}
+
+
+func set_composition_thickness(values: Array) -> void:
+	route_composition_thickness = values.duplicate()
+
+
+func _stylized_camera_fov() -> float:
+	return StylizedWorldComposition.CAMERA_FOV if _uses_stylized_v18() else STYLIZED_CAMERA_FOV
+
+
+func _stylized_camera_pitch() -> float:
+	return StylizedWorldComposition.CAMERA_PITCH if _uses_stylized_v18() else STYLIZED_CAMERA_PITCH
+
+
+func _stylized_camera_look_height() -> float:
+	return StylizedWorldComposition.CAMERA_LOOK_HEIGHT if _uses_stylized_v18() else STYLIZED_CAMERA_LOOK_HEIGHT
+
+
+func _stylized_camera_look_ahead() -> float:
+	return StylizedWorldComposition.CAMERA_LOOK_AHEAD if _uses_stylized_v18() else STYLIZED_CAMERA_LOOK_AHEAD
+
+
+func _stylized_camera_follow_distance() -> float:
+	return StylizedWorldComposition.CAMERA_FOLLOW_DISTANCE if _uses_stylized_v18() else STYLIZED_CAMERA_FOLLOW_DISTANCE
+
+
+func _stylized_camera_follow_height() -> float:
+	return StylizedWorldComposition.CAMERA_FOLLOW_HEIGHT if _uses_stylized_v18() else STYLIZED_CAMERA_FOLLOW_HEIGHT
+
+
+func _route_island_thickness(island_index: int) -> float:
+	if island_index < route_composition_thickness.size():
+		return float(route_composition_thickness[island_index])
+	return 1.45 if island_index == 0 else 1.3
 
 
 func begin(value: Dictionary, selected_lootling: String, selected_cannon: String, pvp := false, number := 0) -> void:
@@ -179,7 +215,7 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 		route_centers = ROUTE_CENTERS.duplicate()
 		route_radii = ROUTE_RADII.duplicate()
 		if USE_STYLIZED_V18:
-			route_radii[0] = 9.0
+			StylizedWorldComposition.apply_wolkengarten(self)
 	lootling_key = selected_lootling
 	cannon_key = selected_cannon
 	ability_charges = 2 if cannon_key == "portal" else 1
@@ -512,7 +548,7 @@ func _update_pooled_fx(delta: float) -> void:
 
 func _build_islands() -> void:
 	for i in range(route_centers.size()):
-		_add_floating_island(route_centers[i], route_radii[i], 1.45 if i == 0 else 1.3, true, i)
+		_add_floating_island(route_centers[i], route_radii[i], _route_island_thickness(i), true, i)
 		_decorate_island(route_centers[i], i > 0, i)
 		_add_biome_landmark(route_centers[i], i)
 		_add_jump_gate(route_centers[i], i)
@@ -520,17 +556,18 @@ func _build_islands() -> void:
 		if i in [1, 3, 5] and quality_level >= 1:
 			_add_waterfall(route_centers[i], route_radii[i], i)
 		if i > 0:
-			# Keep the decorative arch visible, but never put it between the
-			# arriving player, the next cannon and the following target island.
 			var arch_side := -1.0 if i % 2 == 0 else 1.0
 			_add_arch(route_centers[i] + Vector3(arch_side * (route_radii[i] - 3.2), 1.3, 0.2), i)
-	# Distant silhouettes add depth without hovering directly above a playable
-	# island or being mistaken for the next destination.
 	if _uses_stylized_v18():
-		_add_floating_island(Vector3(-11.0, 5.5, -36.0), 6.2, 0.95, false, 20)
-		_add_floating_island(Vector3(13.0, 6.0, -44.0), 5.8, 0.9, false, 21)
-		_add_floating_island(Vector3(2.0, 7.5, -62.0), 6.8, 1.0, false, 22)
-	else:
+		for vista in StylizedWorldComposition.vista_entries():
+			_add_floating_island(vista["center"], vista["radius"], vista["thickness"], false, vista["index"])
+			if vista.get("landmark", false):
+				var landmark_decor := Node3D.new()
+				landmark_decor.name = "VistaLandmarkDecor"
+				landmark_decor.position = vista["center"]
+				add_child(landmark_decor)
+				StylizedWorldDecorator.decorate_hero_landmark(landmark_decor, mats, Callable(self, "_mesh"))
+	elif not _uses_stylized_v18():
 		_add_floating_island(Vector3(30.0, 15.0, -57.0), 4.6, 0.9, false, 11)
 		_add_floating_island(Vector3(-34.0, 25.0, -106.0), 5.2, 1.0, false, 12)
 		_add_floating_island(Vector3(37.0, 39.0, -176.0), 5.8, 1.1, false, 13)
@@ -562,7 +599,10 @@ func _gameplay_camera_yaw_from_route() -> float:
 	if player == null:
 		return orbit_yaw
 	var to: Vector3
-	if is_instance_valid(cannon_root):
+	if _uses_stylized_v18() and current_island_index == 0 and route_centers.size() > 1:
+		var cannon_pos: Vector3 = cannon_root.global_position if is_instance_valid(cannon_root) else Vector3(route_centers[0])
+		to = cannon_pos.lerp(Vector3(route_centers[1]), 0.55)
+	elif is_instance_valid(cannon_root):
 		to = cannon_root.global_position
 	else:
 		to = Vector3(route_centers[mini(current_island_index + 1, route_centers.size() - 1)])
@@ -576,23 +616,23 @@ func _gameplay_camera_yaw_from_route() -> float:
 
 func _compute_stylized_camera_pose() -> Dictionary:
 	var forward: Vector3 = _orbit_forward_horizontal()
-	var pitch_offset: float = (orbit_pitch - STYLIZED_CAMERA_PITCH) * 0.12
+	var pitch_offset: float = (orbit_pitch - _stylized_camera_pitch()) * 0.12
 	var look_target: Vector3 = (
 		player.global_position
-		+ Vector3.UP * STYLIZED_CAMERA_LOOK_HEIGHT
-		+ forward * STYLIZED_CAMERA_LOOK_AHEAD
+		+ Vector3.UP * _stylized_camera_look_height()
+		+ forward * _stylized_camera_look_ahead()
 	)
 	var position: Vector3 = (
 		look_target
-		- forward * STYLIZED_CAMERA_FOLLOW_DISTANCE
-		+ Vector3.UP * (STYLIZED_CAMERA_FOLLOW_HEIGHT + pitch_offset)
+		- forward * _stylized_camera_follow_distance()
+		+ Vector3.UP * (_stylized_camera_follow_height() + pitch_offset)
 	)
 	return {
 		"position": position,
 		"look_target": look_target,
-		"fov": STYLIZED_CAMERA_FOV,
+		"fov": _stylized_camera_fov(),
 		"forward": forward,
-		"distance": STYLIZED_CAMERA_FOLLOW_DISTANCE,
+		"distance": _stylized_camera_follow_distance(),
 		"pitch": orbit_pitch,
 		"yaw": orbit_yaw,
 	}
@@ -603,7 +643,7 @@ func _apply_gameplay_camera_pose_immediate() -> void:
 		return
 	var pose: Dictionary = _compute_stylized_camera_pose()
 	camera.global_position = pose.position
-	camera.fov = STYLIZED_CAMERA_FOV
+	camera.fov = _stylized_camera_fov()
 	camera.look_at(pose.look_target, Vector3.UP)
 	camera.rotation.z = 0.0
 
@@ -614,8 +654,8 @@ func bootstrap_gameplay_camera() -> void:
 		return
 	orbit_yaw = _gameplay_camera_yaw_from_route()
 	target_orbit_yaw = orbit_yaw
-	orbit_pitch = STYLIZED_CAMERA_PITCH
-	target_orbit_pitch = STYLIZED_CAMERA_PITCH
+	orbit_pitch = _stylized_camera_pitch()
+	target_orbit_pitch = _stylized_camera_pitch()
 	_apply_gameplay_camera_pose_immediate()
 	camera_bootstrapped = true
 
@@ -667,14 +707,74 @@ func evaluate_camera_composition() -> Dictionary:
 	}
 
 
+func _stylized_player_spawn_offset() -> Vector3:
+	return Vector3(StylizedWorldComposition.PLAYER_SPAWN_OFFSET.x, FLOOR_OFFSET, StylizedWorldComposition.PLAYER_SPAWN_OFFSET.z)
+
+
+func _stylized_cannon_offset() -> Vector3:
+	return StylizedWorldComposition.CANNON_OFFSET
+
+
+func _player_island_spawn_offset() -> Vector3:
+	if _uses_stylized_v18():
+		return Vector3(StylizedWorldComposition.PLAYER_SPAWN_OFFSET.x, FLOOR_OFFSET + 0.2, StylizedWorldComposition.PLAYER_SPAWN_OFFSET.z)
+	return Vector3(-2.0, FLOOR_OFFSET + 0.2, 1.8)
+
+
+func evaluate_world_composition_screen() -> Dictionary:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y <= 1.0:
+		viewport_size = Vector2(1080.0, 1920.0)
+	var markers: Dictionary = StylizedWorldComposition.composition_markers(self)
+	var result := {}
+	for key in markers.keys():
+		var world_pos: Vector3 = markers[key]
+		assert(world_pos.is_finite(), "Composition marker %s must be finite" % key)
+		var screen: Vector2 = camera.unproject_position(world_pos) if camera else Vector2.ZERO
+		result[key] = {
+			"screen": screen,
+			"x_pct": screen.x / viewport_size.x,
+			"y_pct": screen.y / viewport_size.y,
+			"in_view": screen.x >= 0.0 and screen.x <= viewport_size.x and screen.y >= 0.0 and screen.y <= viewport_size.y,
+		}
+	return result
+
+
+func assert_world_composition_valid(context: String = "spawn") -> void:
+	if player == null or camera == null or route_centers.size() < 2:
+		return
+	var forward: Vector3 = _orbit_forward_horizontal()
+	var to_destination: Vector3 = Vector3(route_centers[1]) - player.global_position
+	to_destination.y = 0.0
+	assert(to_destination.length_squared() > 0.1, "%s: destination must exist" % context)
+	assert(forward.dot(to_destination.normalized()) > 0.2,
+		"%s: primary destination must be in front of player" % context)
+	var to_cannon: Vector3 = cannon_root.global_position - player.global_position if is_instance_valid(cannon_root) else Vector3.ZERO
+	to_cannon.y = 0.0
+	if to_cannon.length_squared() > 0.01:
+		assert(forward.dot(to_cannon.normalized()) > 0.05,
+			"%s: cannon must be generally ahead of player" % context)
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if viewport_size.y <= 500.0:
+		return
+	var metrics: Dictionary = evaluate_world_composition_screen()
+	assert(metrics.has("player_spawn") and metrics["player_spawn"]["in_view"],
+		"%s: player spawn marker must be in view" % context)
+	assert(metrics.has("cannon") and metrics["cannon"]["in_view"],
+		"%s: cannon marker must be in view" % context)
+	if metrics.has("primary_destination") and metrics["primary_destination"]["in_view"]:
+		assert(metrics["primary_destination"]["y_pct"] < metrics["player_spawn"]["y_pct"],
+			"%s: destination should sit above player in portrait frame" % context)
+
+
 func assert_camera_composition_valid(context: String = "gameplay") -> void:
 	var metrics: Dictionary = evaluate_camera_composition()
 	assert(metrics.player_in_front_of_camera,
 		"%s: player must stay in front of camera (in_view=%.2f)" % [context, metrics.player_in_view])
 	assert(metrics.player_screen_x_pct >= 0.30 and metrics.player_screen_x_pct <= 0.70,
 		"%s: player x=%.2f outside 30-70%%" % [context, metrics.player_screen_x_pct])
-	assert(metrics.player_screen_y_pct >= 0.55 and metrics.player_screen_y_pct <= 0.88,
-		"%s: player y=%.2f outside 55-88%%" % [context, metrics.player_screen_y_pct])
+	assert(metrics.player_screen_y_pct >= 0.55 and metrics.player_screen_y_pct <= 0.92,
+		"%s: player y=%.2f outside 55-92%%" % [context, metrics.player_screen_y_pct])
 	assert(metrics.target_ahead_of_player > 0.0,
 		"%s: camera target must be ahead of player" % context)
 	assert(metrics.movement_forward_dot > 0.9,
@@ -701,7 +801,7 @@ func debug_advance_to_island(island_index: int) -> void:
 	if island_index < 0 or island_index >= route_centers.size():
 		return
 	current_island_index = island_index
-	player.global_position = Vector3(route_centers[island_index]) + Vector3(-2.0, FLOOR_OFFSET + 0.2, 1.8)
+	player.global_position = Vector3(route_centers[island_index]) + _player_island_spawn_offset()
 	player.velocity = Vector3.ZERO
 	player.visible = true
 	if player_shadow:
@@ -1246,7 +1346,7 @@ func _add_arch(pos: Vector3, island_index: int) -> void:
 func _build_source_cannon() -> void:
 	for i in range(route_centers.size() - 1):
 		var route_cannon := _create_cannon("RouteCannon%02d" % (i + 1))
-		route_cannon.position = route_centers[i] + Vector3(0.0, 0.92, -2.2)
+		route_cannon.position = route_centers[i] + (_stylized_cannon_offset() if _uses_stylized_v18() else Vector3(0.0, 0.92, -2.2))
 		add_child(route_cannon)
 		var pivot: Node3D = route_cannon.get_node("AimPivot")
 		pivot.look_at(route_centers[i + 1] + Vector3(0, 2.0, 0), Vector3.UP)
@@ -1364,7 +1464,7 @@ func _create_stylized_cannon(node_name: String) -> Node3D:
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "BouncerPlayer"
-	player.position = Vector3(route_centers[0]) + Vector3(-2.0, FLOOR_OFFSET, 2.0)
+	player.position = Vector3(route_centers[0]) + (_stylized_player_spawn_offset() if _uses_stylized_v18() else Vector3(-2.0, FLOOR_OFFSET, 2.0))
 	add_child(player)
 	var collision := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
@@ -1464,15 +1564,13 @@ func _build_route() -> void:
 		var risk_patterns := [[1, 4, 5], [0, 3, 5], [2, 5, 6]]
 		var active_risks: Array = risk_patterns[(route_variant + route_index) % risk_patterns.size()]
 		if _uses_stylized_v18() and route_index == 0:
-			var from_center: Vector3 = Vector3(route_centers[0])
-			var to_center: Vector3 = Vector3(route_centers[1])
-			for i in range(4):
-				var t: float = float(i + 1) / 5.0
-				var pos: Vector3 = from_center.lerp(to_center, t * 0.58)
-				pos.y = from_center.y + 1.8 + sin(t * PI) * 1.2
+			var ring_points: Array[Vector3] = StylizedWorldComposition.ring_arc_for_hop(
+				0, Vector3(route_centers[0]), Vector3(route_centers[1])
+			)
+			for i in range(ring_points.size()):
+				var pos: Vector3 = ring_points[i]
 				var risk: bool = i in active_risks
-				pos.x += sin(float(i) * 1.1) * 0.28
-				var kind: String = "crystal" if i == 3 else "coin"
+				var kind: String = "crystal" if i == ring_points.size() - 1 else "coin"
 				var value: int = 1 if kind == "crystal" else 25 if risk else 15
 				_add_flight_pickup(pos, kind, value, risk, route_index)
 		else:
@@ -2116,7 +2214,7 @@ func _retry_checkpoint() -> void:
 	flight_time = 0.0
 	_reset_gameplay_input_state()
 	_activate_route_cannon(current_island_index)
-	player.global_position = route_centers[current_island_index] + Vector3(-2.0, FLOOR_OFFSET + 0.2, 1.8)
+	player.global_position = route_centers[current_island_index] + _player_island_spawn_offset()
 	player.velocity = Vector3.ZERO
 	player.visible = true
 	if player_shadow: player_shadow.visible = true

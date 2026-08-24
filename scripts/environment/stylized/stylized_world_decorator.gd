@@ -41,12 +41,20 @@ static func decorate_hero_midground(
 	StylizedGroundRuinsKit.add_stair_segment(parent, Vector3(0.0, 0.0, 4.2), 8.0, mats, mesh_fn, 4, 3301)
 	StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(3.4, 0.0, 4.6), -12.0, mats, mesh_fn, 4101)
 	var portal_root: Node3D = Node3D.new()
-	portal_root.position = Vector3(-0.5, 0.0, 5.8)
-	portal_root.rotation_degrees.y = 8.0
+	portal_root.position = Vector3(-0.5, 0.0, 5.2)
+	portal_root.rotation_degrees.y = 24.0
 	parent.add_child(portal_root)
 	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.35)
 	StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn)
 	StylizedVegetationGenerator.dress_hero_midground(parent, mats, mesh_fn)
+
+
+static func decorate_hero_landmark(parent: Node3D, mats: Dictionary, mesh_fn: Callable) -> void:
+	StylizedGroundRuinsKit.add_pillar(parent, Vector3(0.0, 0.0, 0.0), 0.0, mats, mesh_fn, true, 8801)
+	StylizedGroundRuinsKit.add_wall_segment(parent, Vector3(-1.4, 0.0, 0.6), 12.0, mats, mesh_fn, true, 8802)
+	StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(0.8, 0.0, -0.4), -8.0, mats, mesh_fn, 8803)
+	StylizedVegetationGenerator.create_tree(parent, Vector3(1.6, 0.0, -0.8), StylizedVegetationGenerator.TreeVariant.TREE_B, 0.72, 8804, mats, mesh_fn)
+	StylizedVegetationGenerator.create_shrub(parent, Vector3(-1.0, 0.0, -0.5), 0.85, 8805, mats, mesh_fn)
 
 
 static func decorate_playable_island(
