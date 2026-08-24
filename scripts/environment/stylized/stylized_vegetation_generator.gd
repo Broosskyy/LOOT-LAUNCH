@@ -377,9 +377,6 @@ static func dress_start_island(
 	island_radius: float = 9.0
 ) -> void:
 	var exclusions: Array = Density.start_island_exclusions()
-	# Zone A — spawn: very low density.
-	_place_start_grass(parent, Vector3(2.6, 0.0, 2.2), GrassVariant.SHORT, 0.82, 101, mats, mesh_fn, exclusions, quality_level)
-	_place_start_flower(parent, Vector3(3.2, 0.0, 1.0), FlowerPreset.WHITE_CLUSTER, 102, mats, mesh_fn, exclusions, quality_level)
 	# Zone B — path edges (medium, never center).
 	var path_accents: Array[Dictionary] = [
 		{"pos": Vector3(-1.85, 0.0, 2.15), "grass": GrassVariant.SHORT},
@@ -446,7 +443,7 @@ static func dress_start_island(
 	_place_start_flower(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(-0.45, 0.0, 0.25), FlowerPreset.VIOLET_CLUSTER, 711, mats, mesh_fn, exclusions, quality_level)
 	_place_start_grass(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.25, 0.0, -0.35), GrassVariant.SHORT, 0.86, 712, mats, mesh_fn, exclusions, quality_level)
 	# Zone G — cliff edge clusters (~35% coverage).
-	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 16, 0.42, 800)
+	var edge_positions: Array[Vector3] = Density.edge_ring_positions(island_radius, 16, 0.34, 800)
 	for i in range(edge_positions.size()):
 		if quality_level < 2 and i % Density.tier_skip_every_nth(2, quality_level) != 0:
 			continue

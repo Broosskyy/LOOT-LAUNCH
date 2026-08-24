@@ -11,10 +11,10 @@ static func apply(
 	sun: DirectionalLight3D,
 	quality_level: int
 ) -> void:
-	sky_material.sky_top_color = Color("62bce8")
-	sky_material.sky_horizon_color = Color("b0ddf5")
-	sky_material.ground_horizon_color = Color("84bcd8")
-	sky_material.ground_bottom_color = Color("5898c0")
+	sky_material.sky_top_color = Color("58b8e8")
+	sky_material.sky_horizon_color = Color("a8d8f2")
+	sky_material.ground_horizon_color = Color("7eb8d8")
+	sky_material.ground_bottom_color = Color("5498c0")
 	sky_material.sun_angle_max = 14.0
 	sky_material.sun_curve = 0.035
 	environment.background_mode = Environment.BG_SKY
@@ -22,7 +22,7 @@ static func apply(
 	environment.ambient_light_color = Color("b8d8f0")
 	environment.ambient_light_energy = 0.50 if quality_level >= 2 else 0.44 if quality_level == 1 else 0.40
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.tonemap_exposure = 0.80 if quality_level >= 2 else 0.78
+	environment.tonemap_exposure = 0.77 if quality_level >= 2 else 0.76
 	environment.tonemap_white = 1.15
 	environment.glow_enabled = quality_level >= 1
 	environment.glow_intensity = 0.10 if quality_level == 1 else 0.11
@@ -32,8 +32,8 @@ static func apply(
 	environment.fog_light_energy = 0.36
 	if quality_level >= 2:
 		environment.fog_enabled = true
-		environment.fog_density = 0.00128
-		environment.fog_aerial_perspective = 0.30
+		environment.fog_density = 0.00118
+		environment.fog_aerial_perspective = 0.34
 	elif quality_level == 1:
 		environment.fog_enabled = true
 		environment.fog_density = 0.0008
@@ -44,7 +44,7 @@ static func apply(
 		environment.fog_aerial_perspective = 0.0
 	sun.rotation_degrees = Vector3(-40.0, -36.0, 0.0)
 	sun.light_color = Color("fff2cc")
-	sun.light_energy = 0.80 if quality_level >= 2 else 0.74
+	sun.light_energy = 0.82 if quality_level >= 2 else 0.76
 	sun.shadow_enabled = quality_level >= 1
 	sun.directional_shadow_max_distance = 64.0 if quality_level >= 2 else 54.0
 	sun.shadow_bias = 0.05

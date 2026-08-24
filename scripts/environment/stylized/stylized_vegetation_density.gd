@@ -19,11 +19,12 @@ static func density_scale(quality_level: int) -> float:
 
 static func start_island_exclusions() -> Array[Dictionary]:
 	return [
-		{"center": WorldComp.PLAYER_SPAWN_OFFSET, "radius": 1.65},
-		{"center": WorldComp.CANNON_OFFSET, "radius": 2.35},
+		{"center": WorldComp.PLAYER_SPAWN_OFFSET, "radius": 1.85},
+		{"center": Vector3(0.15, 0.0, 0.55), "radius": 1.45},
+		{"center": WorldComp.CANNON_OFFSET, "radius": 2.55},
 		{"center": StartComp.CHEST_POS, "radius": 1.35},
 		{"center": StartComp.PAD_POS, "radius": 1.25},
-		{"center": Vector3(0.35, 0.0, -2.82), "radius": 0.9},
+		{"center": Vector3(0.35, 0.0, -2.82), "radius": 0.95},
 	]
 
 

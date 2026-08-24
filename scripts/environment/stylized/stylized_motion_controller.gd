@@ -12,8 +12,8 @@ const WIND_MATERIAL_KEYS: Array[String] = [
 static func wind_strength_for_quality(quality_level: int) -> float:
 	match clampi(quality_level, 0, 2):
 		0: return 0.0
-		1: return 0.038
-		_: return 0.055
+		1: return 0.032
+		_: return 0.048
 
 
 static func wind_speed_for_quality(quality_level: int) -> float:
@@ -72,7 +72,7 @@ static func update_animated_nodes(nodes: Array, delta: float, idle_time: float) 
 			_pulse_emission(node, idle_time)
 		elif node.has_meta("animate_pad"):
 			node.rotation.y += delta * 0.42
-			_pulse_emission(node, idle_time, 0.38, 0.14)
+			_pulse_emission(node, idle_time, 0.42, 0.10)
 		elif node.has_meta("animate_pad_ring"):
 			node.rotation.y -= delta * 0.28
 			var pulse: float = 1.0 + sin(idle_time * 2.4 + float(node.get_meta("pulse_phase", 0.0))) * 0.04
@@ -82,7 +82,7 @@ static func update_animated_nodes(nodes: Array, delta: float, idle_time: float) 
 			var hover: float = sin(idle_time * 2.1 + float(node.get_meta("pulse_phase", 0.0))) * 0.045
 			var origin_y: float = float(node.get_meta("hover_origin_y", node.position.y))
 			node.position.y = origin_y + hover
-			_pulse_emission(node, idle_time, 0.42, 0.18)
+			_pulse_emission(node, idle_time, 0.40, 0.12)
 
 
 static func update_pickup_motion(items: Array, delta: float, idle_time: float) -> void:
@@ -94,7 +94,7 @@ static func update_pickup_motion(items: Array, delta: float, idle_time: float) -
 		var origin: Vector3 = item.get("origin", node.position)
 		node.rotation.y += delta * 1.85
 		node.rotation.x = sin(idle_time * 1.4 + phase) * 0.06
-		var bob: float = 0.11 + sin(idle_time * 2.35 + phase) * 0.05
+		var bob: float = 0.08 + sin(idle_time * 2.1 + phase) * 0.035
 		if bool(item.get("objective", false)):
 			bob += 0.05
 		node.position.y = float(origin.y) + bob

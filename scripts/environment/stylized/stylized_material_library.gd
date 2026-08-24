@@ -17,13 +17,13 @@ static func apply_palette(
 	var use_shaders: bool = quality_level >= 1
 	# Grass family
 	mats["grass_main"] = _surface(
-		use_shaders, material_fn, Color("4a9c58"), 0.94, 0.0, true, 0.10, 0.07
+		use_shaders, material_fn, Color("468f54"), 0.94, 0.0, true, 0.10, 0.07
 	)
 	mats["grass_light"] = _surface(
-		use_shaders, material_fn, Color("68b470"), 0.92, 0.0, true, 0.09, 0.07
+		use_shaders, material_fn, Color("62a864"), 0.92, 0.0, true, 0.09, 0.07
 	)
 	mats["grass_dark"] = _surface(
-		use_shaders, material_fn, Color("3d8c4c"), 0.95, 0.0, true, 0.11, 0.06
+		use_shaders, material_fn, Color("3a8448"), 0.95, 0.0, true, 0.11, 0.06
 	)
 	# Rock / cliff family
 	mats["stone_main"] = _surface(

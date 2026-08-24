@@ -19,8 +19,8 @@ const EDGE_STONES: Array[Vector3] = [
 	Vector3(-1.8, 0.0, -3.9),
 ]
 
-const PAD_POS := Vector3(-2.2, 0.0, 0.35)
-const CHEST_POS := Vector3(-2.9, 0.0, 0.55)
+const PAD_POS := Vector3(-2.05, 0.0, 0.42)
+const CHEST_POS := Vector3(-2.65, 0.0, 0.72)
 const RUIN_POS := Vector3(-5.2, 0.0, 3.8)
 const CORNER_RUIN_POS := Vector3(-5.2, 0.0, 3.8)
 const PILLAR_POS := Vector3(5.6, 0.0, 1.4)

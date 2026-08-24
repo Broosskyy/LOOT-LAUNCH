@@ -1,22 +1,24 @@
 extends RefCounted
 class_name StylizedWorldComposition
 
-## V25 — Final Wolkengarten reference composition SSOT.
+const StartComp = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
+
+## V30 — Final Wolkengarten reference composition SSOT (supersedes V25 camera table).
 
 enum IslandRole { HERO_START, PRIMARY_DESTINATION, ROUTE, PLAYABLE, HERO_LANDMARK, VISTA, MICRO }
 
 
-const CAMERA_FOV := 50.5
-const CAMERA_PITCH := 19.5
-const CAMERA_LOOK_HEIGHT := 0.82
-const CAMERA_LOOK_AHEAD := 3.2
-const CAMERA_FOLLOW_DISTANCE := 9.05
-const CAMERA_FOLLOW_HEIGHT := 4.12
-const CAMERA_ROUTE_BLEND := 0.42
+const CAMERA_FOV := 52.0
+const CAMERA_PITCH := 18.0
+const CAMERA_LOOK_HEIGHT := 0.68
+const CAMERA_LOOK_AHEAD := 4.85
+const CAMERA_FOLLOW_DISTANCE := 10.15
+const CAMERA_FOLLOW_HEIGHT := 3.48
+const CAMERA_ROUTE_BLEND := 0.46
 
 const PLAYER_SPAWN_OFFSET := Vector3(-1.85, 0.0, 1.65)
 const CANNON_OFFSET := Vector3(1.05, 0.92, -2.05)
-const CANNON_VISUAL_SCALE := 1.08
+const CANNON_VISUAL_SCALE := 1.0
 
 const ROUTE_ISLANDS: Array[Dictionary] = [
 	{
@@ -58,12 +60,12 @@ const ROUTE_ISLANDS: Array[Dictionary] = [
 ]
 
 const VISTA_ISLANDS: Array[Dictionary] = [
-	{"center": Vector3(-12.0, 5.5, -25.0), "radius": 4.8, "thickness": 0.82, "role": IslandRole.VISTA, "index": 20, "landmark": false},
+	{"center": Vector3(-8.5, 5.8, -24.5), "radius": 4.8, "thickness": 0.82, "role": IslandRole.VISTA, "index": 20, "landmark": false},
 	{"center": Vector3(17.0, 5.0, -28.0), "radius": 5.0, "thickness": 0.78, "role": IslandRole.VISTA, "index": 21, "landmark": false},
 	{"center": Vector3(25.0, 6.2, -36.0), "radius": 8.0, "thickness": 0.95, "role": IslandRole.HERO_LANDMARK, "index": 22, "landmark": true},
-	{"center": Vector3(-6.5, 6.0, -33.0), "radius": 4.4, "thickness": 0.8, "role": IslandRole.VISTA, "index": 33, "landmark": false},
+	{"center": Vector3(-4.0, 6.0, -32.5), "radius": 4.4, "thickness": 0.8, "role": IslandRole.VISTA, "index": 33, "landmark": false},
 	{"center": Vector3(11.0, 7.0, -42.0), "radius": 3.2, "thickness": 0.7, "role": IslandRole.MICRO, "index": 34, "landmark": false},
-	{"center": Vector3(-18.0, 6.8, -38.0), "radius": 2.8, "thickness": 0.68, "role": IslandRole.MICRO, "index": 35, "landmark": false},
+	{"center": Vector3(-14.5, 6.8, -37.5), "radius": 2.8, "thickness": 0.68, "role": IslandRole.MICRO, "index": 35, "landmark": false},
 ]
 
 
@@ -111,8 +113,8 @@ static func composition_markers(world: Node) -> Dictionary:
 	if world.route_centers.size() > 0:
 		markers["player_spawn"] = Vector3(world.route_centers[0]) + Vector3(PLAYER_SPAWN_OFFSET.x, floor_y, PLAYER_SPAWN_OFFSET.z)
 		markers["cannon"] = Vector3(world.route_centers[0]) + CANNON_OFFSET
-		markers["chest"] = Vector3(world.route_centers[0]) + Vector3(-2.9, floor_y, 0.55)
-		markers["pad"] = Vector3(world.route_centers[0]) + Vector3(-2.2, floor_y, 0.35)
+		markers["chest"] = Vector3(world.route_centers[0]) + Vector3(StartComp.CHEST_POS.x, floor_y, StartComp.CHEST_POS.z)
+		markers["pad"] = Vector3(world.route_centers[0]) + Vector3(StartComp.PAD_POS.x, floor_y, StartComp.PAD_POS.z)
 	if world.route_centers.size() > 1:
 		markers["primary_destination"] = Vector3(world.route_centers[1]) + Vector3(0.0, 1.2, 0.0)
 		markers["portal"] = Vector3(world.route_centers[1]) + Vector3(0.2, 1.4, 4.0)
