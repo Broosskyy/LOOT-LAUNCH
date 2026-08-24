@@ -3,6 +3,7 @@ class_name StylizedVegetationGenerator
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const StylizedStartComposition = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
+const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
 
 enum FlowerPreset { PINK_CLUSTER, VIOLET_CLUSTER, WHITE_CLUSTER, MIXED_SOFT_CLUSTER }
 enum GrassVariant { SHORT, MEDIUM, EDGE }
@@ -214,36 +215,28 @@ static func create_tree(
 	parent.add_child(tree)
 	var rng := _rng(3600 + seed + int(variant))
 	var trunk_h: float = 0.82 if variant == TreeVariant.TREE_B else 0.95 if variant == TreeVariant.TREE_A else 0.74
-	var trunk_top: float = 0.11 if variant == TreeVariant.TREE_C else 0.14
-	var trunk_bot: float = 0.18 if variant == TreeVariant.TREE_C else 0.22
-	var trunk: CylinderMesh = CylinderMesh.new()
-	trunk.top_radius = trunk_top
-	trunk.bottom_radius = trunk_bot
-	trunk.height = trunk_h
-	trunk.radial_segments = 7
-	var lean := Vector3(rng.randf_range(-4.0, 4.0), 0.0, rng.randf_range(-3.0, 3.0))
-	mesh_fn.call(tree, trunk, _mat(mats, "trunk", "wood"), Vector3(0, trunk_h * 0.5, 0), Vector3.ONE, lean)
+	var trunk_top: float = 0.1 if variant == TreeVariant.TREE_C else 0.13
+	var trunk_bot: float = 0.17 if variant == TreeVariant.TREE_C else 0.2
+	var lean := Vector3(rng.randf_range(-5.0, 5.0), 0.0, rng.randf_range(-4.0, 4.0))
+	mesh_fn.call(tree, MeshLib.tapered_trunk(trunk_h, trunk_bot, trunk_top, seed + int(variant), 7), _mat(mats, "trunk", "wood"), Vector3(0, 0, 0), Vector3.ONE, lean)
 	if variant == TreeVariant.TREE_C:
-		var branch: CylinderMesh = CylinderMesh.new()
-		branch.top_radius = 0.07
-		branch.bottom_radius = 0.09
-		branch.height = 0.42
-		branch.radial_segments = 6
-		mesh_fn.call(tree, branch, _mat(mats, "trunk", "wood"), Vector3(0.12, trunk_h * 0.72, 0.04), Vector3.ONE, Vector3(-24, 18, 8))
+		mesh_fn.call(tree, MeshLib.tapered_trunk(0.38, 0.08, 0.06, seed + 99, 5), _mat(mats, "trunk", "wood"), Vector3(0.14, trunk_h * 0.68, 0.05), Vector3.ONE, Vector3(-28, 22, 10))
 	var crown_defs: Array[Dictionary] = []
 	match variant:
 		TreeVariant.TREE_A:
 			crown_defs = [
-				{"pos": Vector3(-0.38, trunk_h + 0.18, 0.1), "r": 0.52, "sq": 0.72, "mat": "leaf_dark"},
-				{"pos": Vector3(0.34, trunk_h + 0.32, -0.14), "r": 0.48, "sq": 0.68, "mat": "leaf_light"},
-				{"pos": Vector3(0.02, trunk_h + 0.52, 0.16), "r": 0.42, "sq": 0.75, "mat": "leaf_green"},
+				{"pos": Vector3(-0.38, trunk_h + 0.12, 0.1), "r": 0.52, "sq": 0.72, "mat": "leaf_dark"},
+				{"pos": Vector3(0.34, trunk_h + 0.28, -0.14), "r": 0.48, "sq": 0.68, "mat": "leaf_light"},
+				{"pos": Vector3(0.02, trunk_h + 0.48, 0.16), "r": 0.42, "sq": 0.75, "mat": "leaf_green"},
+				{"pos": Vector3(-0.18, trunk_h + 0.58, -0.06), "r": 0.28, "sq": 0.8, "mat": "leaf_light"},
 			]
 		TreeVariant.TREE_B:
 			crown_defs = [
-				{"pos": Vector3(-0.28, trunk_h + 0.12, -0.08), "r": 0.58, "sq": 0.65, "mat": "leaf_light"},
-				{"pos": Vector3(0.3, trunk_h + 0.28, 0.12), "r": 0.54, "sq": 0.7, "mat": "leaf_dark"},
-				{"pos": Vector3(-0.08, trunk_h + 0.46, 0.0), "r": 0.46, "sq": 0.78, "mat": "grass_light"},
-				{"pos": Vector3(0.18, trunk_h + 0.58, -0.06), "r": 0.34, "sq": 0.8, "mat": "leaf_green"},
+				{"pos": Vector3(-0.28, trunk_h + 0.08, -0.08), "r": 0.58, "sq": 0.65, "mat": "leaf_light"},
+				{"pos": Vector3(0.3, trunk_h + 0.24, 0.12), "r": 0.54, "sq": 0.7, "mat": "leaf_dark"},
+				{"pos": Vector3(-0.08, trunk_h + 0.42, 0.0), "r": 0.46, "sq": 0.78, "mat": "grass_light"},
+				{"pos": Vector3(0.18, trunk_h + 0.54, -0.06), "r": 0.34, "sq": 0.8, "mat": "leaf_green"},
+				{"pos": Vector3(-0.22, trunk_h + 0.36, 0.14), "r": 0.3, "sq": 0.72, "mat": "leaf_dark"},
 			]
 		_:
 			crown_defs = [

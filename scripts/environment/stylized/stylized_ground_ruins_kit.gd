@@ -2,8 +2,9 @@ extends RefCounted
 class_name StylizedGroundRuinsKit
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
 
-## V20 — Modular stylized ground & ruins meshes (Godot-native, faceted low-poly).
+## V27 — Modular stylized ground & ruins meshes (beveled blocks, faceted stones).
 
 
 static func _rng(seed: int) -> RandomNumberGenerator:
@@ -47,47 +48,12 @@ static func _add_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Ve
 
 
 static func _build_block_mesh(size: Vector3, variant: int, seed: int, shade: float = 0.86) -> ArrayMesh:
-	var rng := _rng(4100 + variant * 53 + seed)
-	var hx: float = size.x * 0.5
-	var hy: float = size.y
-	var hz: float = size.z * 0.5
-	var jitter := [
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(0.0, 0.03), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(0.0, 0.03), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(0.0, 0.03), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(0.0, 0.03), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.0, 0.02), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.0, 0.02), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.0, 0.02), rng.randf_range(-0.04, 0.04)),
-		Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.0, 0.02), rng.randf_range(-0.04, 0.04)),
-	]
-	var top := [
-		Vector3(-hx, hy, -hz) + jitter[0], Vector3(hx, hy, -hz) + jitter[1],
-		Vector3(hx, hy, hz) + jitter[2], Vector3(-hx, hy, hz) + jitter[3],
-	]
-	var bot := [
-		Vector3(-hx, 0.0, -hz) + jitter[4], Vector3(hx, 0.0, -hz) + jitter[5],
-		Vector3(hx, 0.0, hz) + jitter[6], Vector3(-hx, 0.0, hz) + jitter[7],
-	]
-	var col := Color(shade, shade * 0.97, shade * 0.93, 1.0)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_add_quad(st, top[0], top[1], top[2], top[3], col * Color(1.04, 1.04, 1.02, 1.0))
-	_add_quad(st, bot[2], bot[1], bot[0], bot[3], col * Color(0.78, 0.76, 0.74, 1.0))
-	_add_quad(st, top[0], top[1], bot[1], bot[0], col * Color(0.9, 0.88, 0.86, 1.0))
-	_add_quad(st, top[1], top[2], bot[2], bot[1], col * Color(0.84, 0.82, 0.8, 1.0))
-	_add_quad(st, top[2], top[3], bot[3], bot[2], col * Color(0.88, 0.86, 0.84, 1.0))
-	_add_quad(st, top[3], top[0], bot[0], bot[3], col * Color(0.82, 0.8, 0.78, 1.0))
-	return st.commit()
+	var bevel: float = minf(size.x, size.z) * 0.07
+	return MeshLib.beveled_box(size, bevel, variant * 53 + seed, shade)
 
 
 static func build_path_stone_mesh(variant: int, seed: int) -> ArrayMesh:
-	var rng := _rng(8800 + variant * 19 + seed)
-	var width: float = rng.randf_range(0.68, 0.96)
-	var depth: float = rng.randf_range(0.58, 0.86)
-	var height: float = rng.randf_range(0.10, 0.15)
-	var stretch: float = [1.0, 1.08, 0.92, 1.12, 0.95, 1.05, 0.98, 1.1][variant % 8]
-	return _build_block_mesh(Vector3(width * stretch, height, depth / stretch), variant, seed, 0.9)
+	return MeshLib.path_stone(variant, seed)
 
 
 static func place_path_stones(
@@ -172,13 +138,13 @@ static func add_pillar(
 	root.position = pos
 	root.rotation_degrees.y = rot_y
 	parent.add_child(root)
-	place_ruin_block(root, Vector3(0.0, 0.0, 0.0), Vector3(0.82, 0.36, 0.82), mats, mesh_fn, 0, seed, "dark")
+	place_ruin_block(root, Vector3(0.0, 0.0, 0.0), Vector3(0.88, 0.38, 0.88), mats, mesh_fn, 0, seed, "dark")
 	if broken:
-		place_ruin_block(root, Vector3(0.04, 0.44, 0.0), Vector3(0.52, 0.72, 0.52), mats, mesh_fn, 1, seed + 3, "main", Vector3(8, 0, -14))
+		mesh_fn.call(root, MeshLib.tapered_cylinder(0.22, 0.28, 0.78, 6, seed + 1), _stone_material(mats, "main"), Vector3(0.06, 0.38, 0.02), Vector3.ONE, Vector3(8, 0, -14))
 		place_ruin_block(root, Vector3(0.22, 0.2, 0.18), Vector3(0.34, 0.28, 0.3), mats, mesh_fn, 2, seed + 5, "warm", Vector3(-18, 32, 10))
 	else:
-		place_ruin_block(root, Vector3(0.0, 0.36, 0.0), Vector3(0.48, 0.88, 0.48), mats, mesh_fn, 1, seed + 3, "main")
-		place_ruin_block(root, Vector3(0.0, 0.92, 0.0), Vector3(0.62, 0.22, 0.62), mats, mesh_fn, 2, seed + 5, "light")
+		mesh_fn.call(root, MeshLib.tapered_cylinder(0.2, 0.26, 0.92, 6, seed + 3), _stone_material(mats, "main"), Vector3(0, 0.38, 0))
+		place_ruin_block(root, Vector3(0.0, 0.92, 0.0), Vector3(0.68, 0.24, 0.68), mats, mesh_fn, 2, seed + 5, "light")
 
 
 static func add_stair_segment(
@@ -268,17 +234,17 @@ static func add_rubble_cluster(
 ) -> void:
 	var rng := _rng(seed)
 	for i in range(count):
-		var size := Vector3(
-			rng.randf_range(0.18, 0.34),
-			rng.randf_range(0.12, 0.22),
-			rng.randf_range(0.16, 0.3)
-		)
 		var offset := Vector3(
 			rng.randf_range(-0.45, 0.45),
 			0.0,
 			rng.randf_range(-0.35, 0.35)
 		)
-		place_ruin_block(parent, pos + offset, size, mats, mesh_fn, i, seed + i * 3, "warm" if i % 2 == 0 else "main", Vector3(rng.randf_range(-12, 12), rng.randf_range(-20, 20), rng.randf_range(-10, 10)))
+		var rock: ArrayMesh = MeshLib.small_rock(i, seed + i * 3)
+		mesh_fn.call(
+			parent, rock, _stone_material(mats, "warm" if i % 2 == 0 else "main"),
+			pos + offset, Vector3.ONE,
+			Vector3(rng.randf_range(-12, 12), rng.randf_range(-20, 20), rng.randf_range(-10, 10))
+		)
 
 
 static func add_edge_stones(
@@ -300,12 +266,4 @@ static func add_edge_stones(
 
 
 static func validate_mesh(mesh: ArrayMesh) -> Dictionary:
-	var report := {"errors": PackedStringArray(), "lowest_y": 99999.0, "highest_y": -99999.0}
-	for surface_index in range(mesh.get_surface_count()):
-		var vertices: PackedVector3Array = mesh.surface_get_arrays(surface_index)[Mesh.ARRAY_VERTEX]
-		for vertex in vertices:
-			if not vertex.is_finite():
-				report.errors.append("non-finite vertex")
-			report.lowest_y = minf(report.lowest_y, vertex.y)
-			report.highest_y = maxf(report.highest_y, vertex.y)
-	return report
+	return MeshLib.validate_mesh(mesh)
