@@ -19,7 +19,8 @@ static func decorate_start_island(
 	transparent_fn: Callable,
 	_rng: RandomNumberGenerator,
 	_radius: float,
-	quality_level: int = 2
+	quality_level: int = 2,
+	animated_nodes: Array = []
 ) -> void:
 	StylizedGroundRuinsKit.place_path_stones(parent, StylizedStartComposition.PATH_STONES, mats, mesh_fn, 1200)
 	StylizedGroundRuinsKit.add_corner_ruin(parent, StylizedStartComposition.CORNER_RUIN_POS, -18.0, mats, mesh_fn, 2201)
@@ -28,8 +29,10 @@ static func decorate_start_island(
 	StylizedGroundRuinsKit.add_rubble_cluster(parent, Vector3(-4.6, 0.0, 1.2), mats, mesh_fn, 2604, 4)
 	StylizedGroundRuinsKit.add_edge_stones(parent, StylizedStartComposition.EDGE_STONES, mats, mesh_fn, 2705)
 	StylizedRuinGenerator.add_signpost(parent, StylizedStartComposition.SIGN_POS, mats, mesh_fn)
-	StylizedCrystalGenerator.add_cluster(parent, StylizedStartComposition.CRYSTAL_POS, 0.82, mats, mesh_fn)
-	_add_teleport_pad(parent, mats, mesh_fn, transparent_fn)
+	var crystal_cluster: Node3D = StylizedCrystalGenerator.add_cluster(parent, StylizedStartComposition.CRYSTAL_POS, 0.82, mats, mesh_fn, false, true)
+	if crystal_cluster != null:
+		animated_nodes.append(crystal_cluster)
+	_add_teleport_pad(parent, mats, mesh_fn, transparent_fn, animated_nodes)
 	_add_decor_chest(parent, mats, mesh_fn, StylizedStartComposition.CHEST_POS)
 	StylizedVegetationGenerator.dress_start_island(parent, mats, mesh_fn, quality_level, _radius)
 
@@ -50,7 +53,9 @@ static func decorate_hero_midground(
 	portal_root.rotation_degrees.y = 6.0
 	parent.add_child(portal_root)
 	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.35)
-	StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn)
+	var crystal_cluster: Node3D = StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn, false, true)
+	if crystal_cluster != null:
+		animated_nodes.append(crystal_cluster)
 	StylizedVegetationGenerator.dress_hero_midground(parent, mats, mesh_fn, quality_level, island_radius)
 
 
@@ -126,8 +131,8 @@ static func decorate_target_island(
 	StylizedVegetationGenerator.dress_target_island(parent, radius, island_index, mats, mesh_fn, quality_level)
 
 
-static func _add_teleport_pad(parent: Node3D, mats: Dictionary, mesh_fn: Callable, transparent_fn: Callable) -> void:
-	StylizedHeroModels.build_pad(parent, StylizedStartComposition.PAD_POS, mats, mesh_fn, transparent_fn)
+static func _add_teleport_pad(parent: Node3D, mats: Dictionary, mesh_fn: Callable, transparent_fn: Callable, animated_nodes: Array = []) -> void:
+	StylizedHeroModels.build_pad(parent, StylizedStartComposition.PAD_POS, mats, mesh_fn, transparent_fn, animated_nodes)
 
 
 static func _add_decor_chest(parent: Node3D, mats: Dictionary, mesh_fn: Callable, pos: Vector3) -> void:

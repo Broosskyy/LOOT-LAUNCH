@@ -9,12 +9,15 @@ const ROCK_SHADER := preload("res://shaders/stylized/stylized_rock.gdshader")
 const CLOUD_SHADER := preload("res://shaders/stylized/stylized_cloud.gdshader")
 
 
-static func grass_material(color: Color, roughness: float = 0.94) -> ShaderMaterial:
+static func grass_material(color: Color, roughness: float = 0.94, wind_strength: float = 0.055, wind_speed: float = 1.12) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = GRASS_SHADER
 	mat.set_shader_parameter("albedo_color", color)
 	mat.set_shader_parameter("roughness", roughness)
 	mat.set_shader_parameter("variation_strength", 0.08)
+	mat.set_shader_parameter("wind_strength", wind_strength)
+	mat.set_shader_parameter("wind_speed", wind_speed)
+	mat.set_shader_parameter("wind_phase", 0.0)
 	return mat
 
 

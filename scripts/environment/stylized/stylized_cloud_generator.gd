@@ -2,6 +2,7 @@ extends RefCounted
 class_name StylizedCloudGenerator
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+const StylizedMotionController = preload("res://scripts/environment/stylized/stylized_motion_controller.gd")
 
 const MAX_PUFFS := 96
 const MAX_CLOUD_ROOTS := 24
@@ -87,6 +88,9 @@ static func _add_cluster(
 	root.position = pos
 	root.set_meta("origin", pos)
 	root.set_meta("phase", rng.randf_range(0.0, TAU))
+	var depth_layer: int = 0 if pos.y < 0.0 else 1 if pos.y < 25.0 else 2
+	root.set_meta("drift_depth", depth_layer)
+	root.set_meta("drift_speed", StylizedMotionController.cloud_drift_speed(depth_layer))
 	parent.add_child(root)
 	clouds_out.append(root)
 	var mesh := _puff_mesh_instance()

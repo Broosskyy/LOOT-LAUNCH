@@ -171,6 +171,8 @@ static func build_portal_monument(
 		root, inner, _mat(mats, "portal_energy", "portal"), Vector3(0, 1.72 * sv, -0.04), Vector3.ONE, Vector3(90, 0, 0)
 	) as MeshInstance3D
 	inner_ring.set_meta("animate_portal", true)
+	inner_ring.set_meta("portal_counter", true)
+	inner_ring.set_meta("pulse_phase", 0.0)
 	animated_nodes.append(inner_ring)
 	var energy: TorusMesh = TorusMesh.new()
 	energy.inner_radius = 0.52 * sv
@@ -181,6 +183,7 @@ static func build_portal_monument(
 		root, energy, _mat(mats, "crystal_violet", "crystal"), Vector3(0, 1.72 * sv, 0.02), Vector3.ONE, Vector3(90, 0, 0)
 	) as MeshInstance3D
 	energy_ring.set_meta("animate_portal", true)
+	energy_ring.set_meta("pulse_phase", 1.7)
 	animated_nodes.append(energy_ring)
 	var disc: CylinderMesh = CylinderMesh.new()
 	disc.top_radius = 0.66 * sv
@@ -201,17 +204,25 @@ static func build_portal_monument(
 	return root
 
 
-static func build_pad(parent: Node3D, pos: Vector3, mats: Dictionary, mesh_fn: Callable, _transparent_fn: Callable) -> void:
+static func build_pad(parent: Node3D, pos: Vector3, mats: Dictionary, mesh_fn: Callable, _transparent_fn: Callable, animated_nodes: Array = []) -> void:
 	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(1.75, 0.16, 1.75), 0.1, 301, 0.7), _mat(mats, "pad_stone", "stone_dark"), pos)
 	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(1.48, 0.1, 1.48), 0.08, 302, 0.76), _mat(mats, "pad_stone", "stone_main"), pos + Vector3(0, 0.16, 0))
 	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(1.22, 0.08, 1.22), 0.06, 303, 0.72), _mat(mats, "portal_stone", "stone_dark"), pos + Vector3(0, 0.24, 0))
-	mesh_fn.call(parent, MeshLib.ring_band(0.38, 0.54, 0.06, 12, 304), _mat(mats, "brass_gold", "brass"), pos + Vector3(0, 0.3, 0))
+	var brass_ring: MeshInstance3D = mesh_fn.call(parent, MeshLib.ring_band(0.38, 0.54, 0.06, 12, 304), _mat(mats, "brass_gold", "brass"), pos + Vector3(0, 0.3, 0)) as MeshInstance3D
+	if brass_ring != null:
+		brass_ring.set_meta("animate_pad_ring", true)
+		brass_ring.set_meta("pulse_phase", 0.8)
+		animated_nodes.append(brass_ring)
 	var energy: CylinderMesh = CylinderMesh.new()
 	energy.top_radius = 0.34
 	energy.bottom_radius = 0.38
 	energy.height = 0.06
 	energy.radial_segments = 12
-	mesh_fn.call(parent, energy, _mat(mats, "pad_energy", "portal"), pos + Vector3(0, 0.32, 0), Vector3.ONE, Vector3(90, 0, 0))
+	var energy_pad: MeshInstance3D = mesh_fn.call(parent, energy, _mat(mats, "pad_energy", "portal"), pos + Vector3(0, 0.32, 0), Vector3.ONE, Vector3(90, 0, 0)) as MeshInstance3D
+	if energy_pad != null:
+		energy_pad.set_meta("animate_pad", true)
+		energy_pad.set_meta("pulse_phase", 1.2)
+		animated_nodes.append(energy_pad)
 	for x in [-1.0, 1.0]:
 		for z in [-1.0, 1.0]:
 			mesh_fn.call(
@@ -240,8 +251,17 @@ static func build_crystal_cluster(
 	mats: Dictionary,
 	mesh_fn: Callable,
 	blue: bool = false,
-	size_tier: String = "medium"
-) -> void:
+	size_tier: String = "medium",
+	hero_motion: bool = false
+) -> Node3D:
+	var cluster := Node3D.new()
+	cluster.name = "CrystalCluster"
+	cluster.position = pos
+	parent.add_child(cluster)
+	if hero_motion:
+		cluster.set_meta("hero_crystal", true)
+		cluster.set_meta("pulse_phase", pos.x * 0.17 + pos.z * 0.11)
+		cluster.set_meta("hover_origin_y", 0.0)
 	var count: int = 3 if size_tier == "small" else 5 if size_tier == "medium" else 6
 	var mat_key: String = "crystal_blue" if blue else "crystal_violet"
 	var offsets: Array[Vector3] = [
@@ -253,10 +273,11 @@ static func build_crystal_cluster(
 	for i in range(mini(count, offsets.size())):
 		var mesh: ArrayMesh = MeshLib.faceted_crystal(heights[i] * scale_value * scales[i], 0.18 * scale_value, i + (10 if blue else 0))
 		mesh_fn.call(
-			parent, mesh, _mat(mats, mat_key, "crystal"),
-			pos + offsets[i], Vector3.ONE,
+			cluster, mesh, _mat(mats, mat_key, "crystal"),
+			offsets[i], Vector3.ONE,
 			Vector3(rad_to_deg(0.12), float(i * 19), rad_to_deg(0.08 * float(i)))
 		)
+	return cluster
 
 
 static func validate_mesh(mesh: ArrayMesh) -> bool:

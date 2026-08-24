@@ -67,6 +67,8 @@ const StylizedCloudGenerator = preload("res://scripts/environment/stylized/styli
 const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
 const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
 const StylizedWorldComposition = preload("res://scripts/environment/stylized/stylized_world_composition.gd")
+const StylizedMotionController = preload("res://scripts/environment/stylized/stylized_motion_controller.gd")
+const StylizedVFXController = preload("res://scripts/environment/stylized/stylized_vfx_controller.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -144,6 +146,8 @@ var camera: Camera3D
 var sun: DirectionalLight3D
 var player: CharacterBody3D
 var player_visual: Node3D
+var player_sprout: Node3D
+var flower_sway_nodes: Array = []
 var player_face: Node3D
 var projectile: CharacterBody3D
 var projectile_visual: Node3D
@@ -237,6 +241,7 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	_build_route()
 	_build_target_contents()
 	_build_trajectory()
+	_register_motion_nodes()
 	_set_state(HopState.ON_FOOT)
 	if _uses_stylized_v18():
 		bootstrap_gameplay_camera()
@@ -980,7 +985,7 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 	if _uses_stylized_v18():
 		var island_radius: float = float(route_radii[clampi(island_index, 0, route_radii.size() - 1)])
 		if island_index == 0:
-			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius, quality_level)
+			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius, quality_level, wind_streamers)
 		elif island_index == 1:
 			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers, quality_level, island_radius)
 		elif target_side:
@@ -1371,6 +1376,7 @@ func _activate_route_cannon(index: int) -> void:
 	charge_rings.clear()
 	cannon_root = route_cannons[index]
 	cannon_pivot = cannon_root.get_node("AimPivot")
+	StylizedMotionController.register_cannon_recoil_origin(cannon_pivot)
 	muzzle_glow = cannon_pivot.get_node("MuzzleGlow")
 	loaded_lootling = _create_lootling(0.58)
 	loaded_lootling.name = "LoadedBouncer"
@@ -1482,7 +1488,9 @@ func _build_player() -> void:
 	collision.shape = capsule
 	player.add_child(collision)
 	player_visual = _create_lootling(1.0)
+	player_visual.name = "PlayerVisual"
 	player.add_child(player_visual)
+	player_sprout = player_visual.get_node_or_null("Sprout")
 	player_face = player_visual.get_node("Face")
 	var shadow_mesh := CylinderMesh.new()
 	shadow_mesh.top_radius = 0.52; shadow_mesh.bottom_radius = 0.62; shadow_mesh.height = 0.025; shadow_mesh.radial_segments = 20
@@ -1507,6 +1515,7 @@ func _create_lootling(scale_value: float, visual_key := "") -> Node3D:
 		var arm := SphereMesh.new(); arm.radius = 0.17; arm.height = 0.42
 		_mesh(root, arm, mats.get(active_key, mats.bouncer), Vector3(x, -0.05, -0.02), Vector3(0.68, 1.0, 0.72), Vector3(0, 0, -48.0 if x < 0 else 48.0))
 	var sprout := Node3D.new()
+	sprout.name = "Sprout"
 	sprout.position = Vector3(0, 0.63, 0)
 	root.add_child(sprout)
 	for x in [-0.18, 0.18]:
@@ -1649,7 +1658,10 @@ func _add_flight_pickup(pos: Vector3, kind: String, value: int, risk: bool, rout
 		var prism := PrismMesh.new()
 		prism.size = Vector3(0.7, 1.1, 0.55)
 		_mesh(root, prism, mats.crystal, Vector3.ZERO, Vector3.ONE * 1.18)
-	flight_pickups.append({"node": root, "kind": kind, "value": value, "risk": risk, "route": route_index, "taken": false, "origin": pos, "phase": random.randf_range(0.0, 6.28)})
+	flight_pickups.append({
+		"node": root, "kind": kind, "value": value, "risk": risk, "route": route_index,
+		"taken": false, "origin": pos, "phase": random.randf_range(0.0, TAU)
+	})
 
 
 func _add_portals(a_pos: Vector3, b_pos: Vector3) -> void:
@@ -1699,7 +1711,10 @@ func _build_target_contents() -> void:
 			else:
 				var prism := PrismMesh.new(); prism.size = Vector3(0.6, 0.95, 0.5)
 				_mesh(root, prism, mats.crystal)
-			island_pickups.append({"node": root, "kind": data[1], "value": data[2], "taken": false, "origin": root.position, "island": island_index})
+			island_pickups.append({
+				"node": root, "kind": data[1], "value": data[2], "taken": false,
+				"origin": root.position, "island": island_index, "phase": random.randf_range(0.0, TAU)
+			})
 		var contract_positions := [
 			Vector3(-4.0, 0.72, 3.2),
 			Vector3(4.0, 0.72, -2.6),
@@ -2014,13 +2029,39 @@ func _fire() -> void:
 	_update_action_prompt()
 
 
+func _register_motion_nodes() -> void:
+	if not _uses_stylized_v18():
+		return
+	flower_sway_nodes.clear()
+	var decor: Node = get_node_or_null("SourceIslandDecor")
+	if decor != null:
+		flower_sway_nodes.append_array(StylizedMotionController.collect_sway_nodes(decor))
+	for cannon in route_cannons:
+		var pivot: Node3D = cannon.get_node_or_null("AimPivot")
+		if pivot != null:
+			StylizedMotionController.register_cannon_recoil_origin(pivot)
+
+
 func _cannon_recoil() -> void:
 	shake_left = 0.3
-	var original := cannon_root.position
-	var recoil := cannon_root.create_tween()
-	recoil.tween_property(cannon_root, "position", original + _aim_direction() * -0.38, 0.07).set_trans(Tween.TRANS_QUAD)
-	recoil.tween_property(cannon_root, "position", original, 0.25).set_trans(Tween.TRANS_BACK)
-	_spawn_burst(cannon_pivot.global_position + _aim_direction() * 2.7, mats.violet, 12)
+	var burst_pos: Vector3 = cannon_pivot.global_position + _aim_direction() * 2.7
+	if _uses_stylized_v18() and cannon_pivot != null:
+		StylizedMotionController.play_cannon_recoil(
+			cannon_pivot,
+			_aim_direction(),
+			Callable(self, "_spawn_muzzle_burst").bind(burst_pos)
+		)
+	else:
+		var original := cannon_root.position
+		var recoil := cannon_root.create_tween()
+		recoil.tween_property(cannon_root, "position", original + _aim_direction() * -0.38, 0.07).set_trans(Tween.TRANS_QUAD)
+		recoil.tween_property(cannon_root, "position", original, 0.25).set_trans(Tween.TRANS_BACK)
+		_spawn_burst(burst_pos, mats.violet, 12)
+
+
+func _spawn_muzzle_burst(pos: Vector3) -> void:
+	_spawn_burst(pos, mats.violet, StylizedVFXController.cannon_burst_cap(quality_level))
+	_spawn_burst(pos + _aim_direction() * 0.2, mats.brass_light, mini(6, StylizedVFXController.cannon_burst_cap(quality_level) / 3))
 
 
 func activate_special() -> void:
@@ -2076,7 +2117,7 @@ func _update_walking(delta: float) -> void:
 		player.velocity.y = JUMP_SPEED
 		jump_buffer = 0.0
 		coyote_time = 0.0
-		player_visual.scale = Vector3(0.88, 1.18, 0.88)
+		StylizedMotionController.apply_jump_stretch(player_visual)
 		AudioManager.play_ui()
 	elif not player.is_on_floor():
 		player.velocity.y -= WALK_GRAVITY * delta
@@ -2091,11 +2132,16 @@ func _update_walking(delta: float) -> void:
 		return
 	if direction.length_squared() > 0.01:
 		player_visual.rotation.y = lerp_angle(player_visual.rotation.y, atan2(-direction.x, -direction.z), delta * 11.0)
-		player_visual.position.y = sin(idle_time * 11.0) * 0.08
-		player_visual.scale = Vector3(1.06, 0.94, 1.06)
+		var lean: float = clampf(direction.length(), 0.0, 1.0)
+		player_visual.rotation.z = lerpf(player_visual.rotation.z, -direction.x * 0.08 * lean, minf(1.0, delta * 8.0))
+		StylizedMotionController.update_lootling_visual(
+			player_visual, player_sprout, idle_time, true, delta, Vector3(1.06, 0.94, 1.06)
+		)
 	else:
-		player_visual.position.y = sin(idle_time * 3.0) * 0.035
-		player_visual.scale = player_visual.scale.lerp(Vector3.ONE, delta * 8.0)
+		player_visual.rotation.z = lerpf(player_visual.rotation.z, 0.0, minf(1.0, delta * 6.0))
+		StylizedMotionController.update_lootling_visual(
+			player_visual, player_sprout, idle_time, false, delta, Vector3.ONE
+		)
 	if is_instance_valid(player_shadow):
 		player_shadow.visible = player.global_position.y < center.y + 4.5
 		player_shadow.global_position = Vector3(player.global_position.x, center.y + 0.05, player.global_position.z)
@@ -2176,8 +2222,7 @@ func _land_on_target() -> void:
 	player.global_position = landing
 	player.visible = true
 	if player_shadow: player_shadow.visible = true
-	player_visual.scale = Vector3(1.25, 0.72, 1.25)
-	player_visual.create_tween().tween_property(player_visual, "scale", Vector3.ONE, 0.32).set_trans(Tween.TRANS_ELASTIC)
+	StylizedMotionController.apply_land_squash(player_visual)
 	on_target_island = true
 	chest_opened = opened_chests.has(current_island_index)
 	target_chest = route_chests[current_island_index - 1]
@@ -2242,10 +2287,10 @@ func _check_flight_pickups() -> void:
 		if projectile.global_position.distance_to(item.node.global_position) < pickup_radius:
 			item.taken = true
 			_collect(item.kind, int(item.value), item.node.global_position)
+			StylizedMotionController.play_collect_pop(item.node)
 			if bool(item.get("risk", false)):
 				instruction_changed.emit("RISIKOLINIE GETROFFEN  •  BONUSBEUTE!")
 				_spawn_burst(item.node.global_position, mats.violet, 12)
-			item.node.visible = false
 
 
 func _check_island_pickups() -> void:
@@ -2261,7 +2306,7 @@ func _check_island_pickups() -> void:
 			item.taken = true
 			var objective_target := "objective_island_%d_token_%d" % [current_island_index, int(objective_progress.get(current_island_index, 0)) + 1] if bool(item.get("objective", false)) else ""
 			_collect(item.kind, int(item.value), item.node.global_position, objective_target)
-			item.node.visible = false
+			StylizedMotionController.play_collect_pop(item.node)
 			if bool(item.get("objective", false)):
 				objective_progress[current_island_index] = int(objective_progress.get(current_island_index, 0)) + 1
 				var current := int(objective_progress[current_island_index])
@@ -2327,7 +2372,7 @@ func _collect(kind: String, value: int, world_position: Vector3, event_target :=
 	loot_collected.emit(kind, value, screen_pos)
 	flight_tally_changed.emit(collected_coins, collected_crystals)
 	AudioManager.play_reward(kind != "coin")
-	_spawn_burst(world_position, mats.coin if kind == "coin" else mats.crystal, 8)
+	_spawn_burst(world_position, mats.coin if kind == "coin" else mats.crystal, StylizedVFXController.collect_burst_cap(quality_level))
 
 
 func _open_chest() -> void:
@@ -2424,20 +2469,18 @@ func _process(delta: float) -> void:
 		orbit_yaw = lerp_angle(deg_to_rad(orbit_yaw), deg_to_rad(target_orbit_yaw), minf(1.0, delta * 12.0))
 		orbit_yaw = rad_to_deg(orbit_yaw)
 		orbit_pitch = lerpf(orbit_pitch, target_orbit_pitch, minf(1.0, delta * 12.0))
-	for cloud in clouds:
-		if is_instance_valid(cloud):
-			var origin: Vector3 = cloud.get_meta("origin")
-			var phase: float = float(cloud.get_meta("phase"))
-			cloud.position.x = origin.x + sin(idle_time * 0.13 + phase) * 1.2
-	for item in flight_pickups:
-		if not item.taken and is_instance_valid(item.node):
-			item.node.rotation.y += delta * 2.2
-			item.node.position.y = item.origin.y + sin(idle_time * 2.7 + item.phase) * 0.12
-	for item in island_pickups:
-		if not item.taken and is_instance_valid(item.node):
-			item.node.rotation.y += delta * 2.0
-			if bool(item.get("objective", false)):
-				item.node.position.y = item.origin.y + sin(idle_time * 3.4 + float(item.get("phase", 0.0))) * 0.16
+	if _uses_stylized_v18():
+		StylizedMotionController.update_clouds(clouds, idle_time)
+	else:
+		for cloud in clouds:
+			if is_instance_valid(cloud):
+				var origin: Vector3 = cloud.get_meta("origin")
+				var phase: float = float(cloud.get_meta("phase"))
+				cloud.position.x = origin.x + sin(idle_time * 0.13 + phase) * 1.2
+	StylizedMotionController.update_pickup_motion(flight_pickups, delta, idle_time)
+	StylizedMotionController.update_pickup_motion(island_pickups, delta, idle_time)
+	if _uses_stylized_v18() and not flower_sway_nodes.is_empty():
+		StylizedMotionController.update_flower_sway(flower_sway_nodes, idle_time)
 	for portal in portal_pair:
 		if is_instance_valid(portal):
 			portal.rotation.z += delta * 1.5
@@ -2467,7 +2510,11 @@ func _process(delta: float) -> void:
 		if is_instance_valid(animated):
 			if animated.has_meta("animate_rotor"):
 				animated.rotation.z += delta * 0.65
-			elif animated.has_meta("animate_portal"):
+	if _uses_stylized_v18():
+		StylizedMotionController.update_animated_nodes(wind_streamers, delta, idle_time)
+	else:
+		for animated in wind_streamers:
+			if is_instance_valid(animated) and animated.has_meta("animate_portal"):
 				animated.rotation.y += delta * 0.55
 	if muzzle_glow and hop_state == HopState.AIMING:
 		var pulse := 1.0 + sin(idle_time * 7.0) * 0.12 + aim_power * 0.22
@@ -2668,7 +2715,12 @@ func _set_state(next: HopState) -> void:
 func _spawn_burst(pos: Vector3, material: Material, count: int) -> void:
 	if spark_pool.is_empty():
 		return
-	var adjusted_count := mini(int(ceil(float(count) * effect_density)), 28)
+	var cap: int = mini(28, count)
+	if material == mats.violet or material == mats.brass_light:
+		cap = mini(cap, StylizedVFXController.cannon_burst_cap(quality_level))
+	elif material == mats.coin or material == mats.crystal:
+		cap = mini(cap, StylizedVFXController.collect_burst_cap(quality_level))
+	var adjusted_count := mini(int(ceil(float(cap) * effect_density)), 28)
 	for i in range(adjusted_count):
 		var item: Dictionary = spark_pool[spark_cursor]
 		spark_cursor = (spark_cursor + 1) % spark_pool.size()

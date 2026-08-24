@@ -3,6 +3,7 @@ class_name StylizedMaterialLibrary
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const StylizedShaderLibrary = preload("res://scripts/environment/stylized/stylized_shader_library.gd")
+const StylizedMotionController = preload("res://scripts/environment/stylized/stylized_motion_controller.gd")
 
 ## V26 render foundation — muted palette + GLES stylized surface shaders.
 
@@ -106,6 +107,7 @@ static func apply_palette(
 	mats["sign_wood"] = mats["wood"]
 	mats["sign_frame"] = mats["wood_dark"]
 	_configure_stylized_surface_flags(mats)
+	StylizedMotionController.configure_wind_materials(mats, quality_level)
 	# Legacy keys
 	mats["grass"] = mats["grass_main"]
 	mats["grass_mint"] = mats["grass_light"]
