@@ -131,6 +131,36 @@ static func decorate_target_island(
 	StylizedVegetationGenerator.dress_target_island(parent, radius, island_index, mats, mesh_fn, quality_level)
 
 
+static func decorate_mega_playable_island(
+	parent: Node3D,
+	mats: Dictionary,
+	mesh_fn: Callable,
+	transparent_fn: Callable,
+	animated_nodes: Array,
+	quality_level: int = 2,
+	island_radius: float = 13.2
+) -> void:
+	var path_points: Array = [
+		{"pos": Vector3(-2.0, 0.04, 4.2), "rot_y": 0.0},
+		{"pos": Vector3(-0.4, 0.04, 2.4), "rot_y": 8.0},
+		{"pos": Vector3(1.2, 0.04, 0.4), "rot_y": 12.0},
+		{"pos": Vector3(1.0, 0.04, -1.4), "rot_y": 4.0},
+	]
+	StylizedGroundRuinsKit.place_path_stones(parent, path_points, mats, mesh_fn, 6200)
+	var crystal_cluster: Node3D = StylizedCrystalGenerator.add_cluster(parent, Vector3(5.2, 0.0, 2.8), 0.88, mats, mesh_fn, false, true)
+	if crystal_cluster != null:
+		animated_nodes.append(crystal_cluster)
+	_add_decor_chest(parent, mats, mesh_fn, Vector3(-1.2, 0.0, 3.6))
+	if quality_level >= 2:
+		StylizedGroundRuinsKit.add_edge_stones(
+			parent,
+			[Vector3(-7.5, 0.0, -4.0), Vector3(7.0, 0.0, -3.5), Vector3(6.5, 0.0, 5.0)],
+			mats,
+			mesh_fn,
+			6210
+		)
+
+
 static func _add_teleport_pad(parent: Node3D, mats: Dictionary, mesh_fn: Callable, transparent_fn: Callable, animated_nodes: Array = []) -> void:
 	StylizedHeroModels.build_pad(parent, StylizedStartComposition.PAD_POS, mats, mesh_fn, transparent_fn, animated_nodes)
 

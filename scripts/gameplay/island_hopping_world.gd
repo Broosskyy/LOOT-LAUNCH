@@ -68,6 +68,8 @@ const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_
 const StylizedWorldComposition = preload("res://scripts/environment/stylized/stylized_world_composition.gd")
 const StylizedMotionController = preload("res://scripts/environment/stylized/stylized_motion_controller.gd")
 const StylizedVFXController = preload("res://scripts/environment/stylized/stylized_vfx_controller.gd")
+const StylizedMegaIslandComposer = preload("res://scripts/environment/stylized/stylized_mega_island_composer.gd")
+const MegaIslandCollision = preload("res://scripts/environment/stylized/mega_island_collision.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -143,6 +145,7 @@ var boosters: Array = []
 var moving_obstacles: Array = []
 var airships: Array = []
 var wind_streamers: Array = []
+var mega_island_metadata: Dictionary = {}
 
 var camera: Camera3D
 var sun: DirectionalLight3D
@@ -1010,6 +1013,16 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 	add_child(root)
 	if _uses_production_island_visual(island_index):
 		_add_production_island_visual(root, radius, thickness)
+	elif _uses_stylized_v18() and StylizedMegaIslandComposer.is_mega_island_index(island_index):
+		mega_island_metadata = StylizedMegaIslandComposer.compose_playable_showcase(
+			root,
+			mats,
+			Callable(self, "_mesh"),
+			quality_level,
+			int(session.get("seed", 7331)) + shot_number * 97,
+			route_variant,
+			false
+		)
 	elif _uses_stylized_v18():
 		StylizedIslandGenerator.build(root, radius, thickness, playable, island_index, mats, quality_level, route_variant, Callable(self, "_mesh"))
 	else:
@@ -1017,13 +1030,16 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 	if playable:
 		var body := StaticBody3D.new()
 		root.add_child(body)
-		var collider := CollisionShape3D.new()
-		var shape := CylinderShape3D.new()
-		shape.radius = radius * 0.91
-		shape.height = thickness
-		collider.shape = shape
-		collider.position.y = -thickness * 0.5
-		body.add_child(collider)
+		if _uses_stylized_v18() and StylizedMegaIslandComposer.is_mega_island_index(island_index):
+			MegaIslandCollision.build_collision(body, mega_island_metadata.get("modules", []), thickness)
+		else:
+			var collider := CollisionShape3D.new()
+			var shape := CylinderShape3D.new()
+			shape.radius = radius * 0.91
+			shape.height = thickness
+			collider.shape = shape
+			collider.position.y = -thickness * 0.5
+			body.add_child(collider)
 
 
 func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> void:
@@ -1040,6 +1056,8 @@ func _decorate_island(center: Vector3, target_side: bool, island_index := 0) -> 
 			StylizedWorldDecorator.decorate_start_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), random, island_radius, quality_level, wind_streamers)
 		elif island_index == 1:
 			StylizedWorldDecorator.decorate_hero_midground(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers, quality_level, island_radius)
+		elif StylizedMegaIslandComposer.is_mega_island_index(island_index):
+			StylizedWorldDecorator.decorate_mega_playable_island(root, mats, Callable(self, "_mesh"), Callable(self, "_transparent_material"), wind_streamers, quality_level, island_radius)
 		elif target_side:
 			StylizedWorldDecorator.decorate_target_island(root, mats, Callable(self, "_mesh"), island_radius, island_index, quality_level)
 		else:
