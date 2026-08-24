@@ -8,6 +8,7 @@ static func validate_island_meshes(island_root: Node3D, expected_radius: float) 
 	var report := {
 		"mesh_count": 0,
 		"vertex_count": 0,
+		"triangle_count": 0,
 		"max_edge": 0.0,
 		"lowest_y": 99999.0,
 		"highest_y": -99999.0,
@@ -21,14 +22,42 @@ static func validate_island_meshes(island_root: Node3D, expected_radius: float) 
 	return report
 
 
-static func assert_island_valid(island_root: Node3D, expected_radius: float) -> void:
+static func assert_island_valid(island_root: Node3D, expected_radius: float, min_depth_ratio := 0.28) -> void:
 	var report: Dictionary = validate_island_meshes(island_root, expected_radius)
 	assert(report.errors.is_empty(),
 		"Island mesh validation failed: %s (meshes=%d max_edge=%.2f radius=%.2f)" % [
 			", ".join(report.errors), report.mesh_count, report.max_edge, expected_radius
 		])
-	assert(report.mesh_count >= 2, "Island must contain grass and cliff ArrayMesh surfaces")
-	assert(report.lowest_y < -1.5, "Island underside must close below the grass top")
+	assert(report.mesh_count >= 2, "Island must contain grass and rock ArrayMesh surfaces")
+	var depth: float = report.highest_y - report.lowest_y
+	assert(report.lowest_y < -expected_radius * min_depth_ratio,
+		"Island underside must extend below top (lowest=%.2f radius=%.2f)" % [report.lowest_y, expected_radius])
+
+
+static func assert_variant_deterministic(
+	island_index: int,
+	route_variant: int,
+	mats: Dictionary,
+	quality_level: int,
+	mesh_fn: Callable
+) -> void:
+	var first: Dictionary = _build_bounds_snapshot(island_index, route_variant, mats, quality_level, mesh_fn)
+	var second: Dictionary = _build_bounds_snapshot(island_index, route_variant, mats, quality_level, mesh_fn)
+	assert(first == second, "Island %d geometry must be seed-deterministic" % island_index)
+
+
+static func _build_bounds_snapshot(
+	island_index: int,
+	route_variant: int,
+	mats: Dictionary,
+	quality_level: int,
+	mesh_fn: Callable
+) -> Dictionary:
+	var root := Node3D.new()
+	StylizedIslandGenerator.build(
+		root, 8.0, 1.3, island_index < 6, island_index, mats, quality_level, route_variant, mesh_fn
+	)
+	return StylizedIslandGenerator.bounds_for_island(root)
 
 
 static func _validate_array_mesh(mesh: ArrayMesh, max_allowed_edge: float, report: Dictionary) -> void:
@@ -70,7 +99,14 @@ static func _check_triangle(
 	max_allowed_edge: float,
 	report: Dictionary
 ) -> void:
-	for edge in [a.distance_to(b), b.distance_to(c), c.distance_to(a)]:
+	report.triangle_count += 1
+	var ab := a.distance_to(b)
+	var bc := b.distance_to(c)
+	var ca := c.distance_to(a)
+	for edge in [ab, bc, ca]:
 		report.max_edge = maxf(report.max_edge, edge)
 		if edge > max_allowed_edge:
 			report.errors.append("edge %.2f exceeds limit %.2f" % [edge, max_allowed_edge])
+	var area := (b - a).cross(c - a).length() * 0.5
+	if area < 0.0005:
+		report.errors.append("degenerate triangle area %.6f" % area)

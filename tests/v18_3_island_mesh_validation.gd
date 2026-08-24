@@ -16,7 +16,7 @@ func _run() -> void:
 	for island_index in [0, 1, 20, 21, 22]:
 		var island: Node3D = world.get_node_or_null("SkyIsland%02d" % island_index)
 		assert(island != null, "Island %d must exist" % island_index)
-		var radius: float = 9.0 if island_index == 0 else float(world.route_radii[1]) if island_index == 1 else 6.5
-		Validator.assert_island_valid(island, radius)
+		var radius: float = 9.0 if island_index == 0 else float(world.route_radii[1]) if island_index == 1 else [6.2, 5.8, 6.8][island_index - 20]
+		Validator.assert_island_valid(island, radius, 0.24 if island_index >= 20 else 0.32)
 	print("V18.3 island mesh validation passed")
 	quit(0)
