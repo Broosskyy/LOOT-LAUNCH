@@ -264,8 +264,7 @@ static func build_pad(parent: Node3D, pos: Vector3, mats: Dictionary, mesh_fn: C
 	energy.bottom_radius = 0.48
 	energy.height = 0.05
 	energy.radial_segments = 14
-	var energy_mat: Material = StylizedTypedAccess.transparent_material(transparent_fn, Color(0.72, 0.32, 0.95, 0.42))
-	mesh_fn.call(parent, energy, energy_mat, pos + Vector3(0, 0.3, 0), Vector3.ONE, Vector3(90, 0, 0))
+	mesh_fn.call(parent, energy, _mat(mats, "pad_energy", "portal"), pos + Vector3(0, 0.3, 0), Vector3.ONE, Vector3(90, 0, 0))
 	for x in [-1.0, 1.0]:
 		for z in [-1.0, 1.0]:
 			var stud: CylinderMesh = CylinderMesh.new()

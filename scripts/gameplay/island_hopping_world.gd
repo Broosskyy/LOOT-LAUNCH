@@ -327,7 +327,7 @@ func _configure_solid_materials() -> void:
 		material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 		material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
 		if _uses_stylized_v18() and key in [
-			"stone_main", "stone_dark", "stone_light", "path_stone", "distant_rock", "brass", "wood", "wood_light", "cannon_dark"
+			"stone_main", "stone_dark", "stone_light", "path_stone", "ruin_stone", "distant_rock", "brass", "wood", "wood_dark", "wood_light", "cannon_dark"
 		]:
 			material.vertex_color_use_as_albedo = false
 			material.cull_mode = BaseMaterial3D.CULL_DISABLED
