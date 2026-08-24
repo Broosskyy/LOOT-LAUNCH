@@ -17,23 +17,23 @@ static func apply_palette(
 	var use_shaders: bool = quality_level >= 1
 	# Grass family
 	mats["grass_main"] = _surface(
-		use_shaders, material_fn, Color("468f54"), 0.94, 0.0, true, 0.10, 0.07
+		use_shaders, material_fn, Color("448a52"), 0.93, 0.0, true, 0.11, 0.08
 	)
 	mats["grass_light"] = _surface(
-		use_shaders, material_fn, Color("62a864"), 0.92, 0.0, true, 0.09, 0.07
+		use_shaders, material_fn, Color("5ea662"), 0.91, 0.0, true, 0.10, 0.08
 	)
 	mats["grass_dark"] = _surface(
-		use_shaders, material_fn, Color("3a8448"), 0.95, 0.0, true, 0.11, 0.06
+		use_shaders, material_fn, Color("367a44"), 0.94, 0.0, true, 0.12, 0.07
 	)
 	# Rock / cliff family
 	mats["stone_main"] = _surface(
-		use_shaders, material_fn, Color("918b84"), 0.94, 0.0, false, 0.13, 0.07
+		use_shaders, material_fn, Color("8e8880"), 0.93, 0.0, false, 0.14, 0.09
 	)
 	mats["stone_dark"] = _surface(
-		use_shaders, material_fn, Color("726c66"), 0.95, 0.0, false, 0.15, 0.05
+		use_shaders, material_fn, Color("6e6862"), 0.94, 0.0, false, 0.16, 0.06
 	)
 	mats["stone_light"] = _surface(
-		use_shaders, material_fn, Color("b8b0a4"), 0.9, 0.0, false, 0.10, 0.09
+		use_shaders, material_fn, Color("b4aca0"), 0.89, 0.0, false, 0.11, 0.10
 	)
 	mats["path_stone"] = _surface(
 		use_shaders, material_fn, Color("c4b8a6"), 0.88, 0.0, false, 0.08, 0.11
@@ -57,7 +57,7 @@ static func apply_palette(
 		material_fn, Color("58b0e0"), 0.22, 0.05, Color("3898d0"), 0.28
 	)
 	mats["portal"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("8250e0"), 0.26, 0.08, Color("6030c8"), 0.52
+		material_fn, Color("7a48d8"), 0.26, 0.08, Color("5830b8"), 0.46
 	)
 	mats["pad_energy"] = StylizedShaderLibrary.standard_surface(
 		material_fn, Color("b868c8"), 0.3, 0.05, Color("c870d8"), 0.46
@@ -83,9 +83,9 @@ static func apply_palette(
 	mats["coin"] = StylizedShaderLibrary.standard_surface(
 		material_fn, Color("d0a030"), 0.28, 0.7, Color("b88820"), 0.18
 	)
-	mats["cloud_soft"] = _cloud_surface(use_shaders, material_fn, Color("f4f8ff"), Color("dce8f4"))
-	mats["cloud_mid"] = _cloud_surface(use_shaders, material_fn, Color("eef4fc"), Color("d4e0ec"))
-	mats["cloud_shadow"] = _cloud_surface(use_shaders, material_fn, Color("e8f0fa"), Color("ccd8e8"))
+	mats["cloud_soft"] = _cloud_surface(use_shaders, material_fn, Color("fafcff"), Color("c8d8ec"), 0.06)
+	mats["cloud_mid"] = _cloud_surface(use_shaders, material_fn, Color("f2f8ff"), Color("bccede"), 0.08)
+	mats["cloud_shadow"] = _cloud_surface(use_shaders, material_fn, Color("e8f2fc"), Color("a8bdd4"), 0.10)
 	mats["distant_grass"] = _surface(
 		use_shaders, material_fn, Color("7a9888"), 0.95, 0.0, true, 0.07, 0.05
 	)
@@ -126,6 +126,7 @@ static func apply_palette(
 	mats["white"] = mats["stone_light"]
 	mats["cannon"] = mats["cannon_dark"]
 	mats["cloud"] = mats["cloud_soft"]
+	mats["water"] = _water_surface(use_shaders, transparent_fn, quality_level)
 
 
 static func _surface(
@@ -145,14 +146,25 @@ static func _surface(
 	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, metallic)
 
 
+static func _water_surface(use_shaders: bool, transparent_fn: Callable, quality_level: int) -> Material:
+	if use_shaders:
+		return StylizedShaderLibrary.water_material(
+			Color(0.42, 0.86, 0.98, 0.72),
+			Color(0.22, 0.62, 0.88, 0.82),
+			quality_level
+		)
+	return transparent_fn.call(Color(0.28, 0.82, 1.0, 0.52)) as Material
+
+
 static func _cloud_surface(
 	use_shaders: bool,
 	material_fn: Callable,
 	top: Color,
-	bottom: Color
+	bottom: Color,
+	side_shade: float = 0.07
 ) -> Material:
 	if use_shaders:
-		return StylizedShaderLibrary.cloud_material(top, bottom)
+		return StylizedShaderLibrary.cloud_material(top, bottom, side_shade)
 	return StylizedShaderLibrary.standard_surface(material_fn, top, 1.0, 0.0)
 
 
@@ -162,7 +174,7 @@ static func validate_palette(mats: Dictionary) -> Array[String]:
 		"grass_main", "grass_light", "grass_dark", "stone_main", "stone_dark", "stone_light",
 		"path_stone", "ruin_stone", "wood", "wood_dark", "brass", "cannon_dark",
 		"leaf_green", "leaf_light", "leaf_dark", "portal_energy", "pad_energy",
-		"crystal_violet", "crystal_blue", "cloud", "cloud_shadow", "distant_grass", "distant_rock",
+		"crystal_violet", "crystal_blue", "cloud", "cloud_shadow", "distant_grass", "distant_rock", "water",
 	]
 	for key in required:
 		if not mats.has(key):

@@ -7,6 +7,7 @@ class_name StylizedShaderLibrary
 const GRASS_SHADER := preload("res://shaders/stylized/stylized_grass.gdshader")
 const ROCK_SHADER := preload("res://shaders/stylized/stylized_rock.gdshader")
 const CLOUD_SHADER := preload("res://shaders/stylized/stylized_cloud.gdshader")
+const WATER_SHADER := preload("res://shaders/stylized/stylized_water.gdshader")
 
 
 static func grass_material(color: Color, roughness: float = 0.94, wind_strength: float = 0.055, wind_speed: float = 1.12) -> ShaderMaterial:
@@ -38,12 +39,25 @@ static func rock_material(
 	return mat
 
 
-static func cloud_material(top: Color, bottom: Color) -> ShaderMaterial:
+static func cloud_material(top: Color, bottom: Color, side_shade: float = 0.07) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = CLOUD_SHADER
 	mat.set_shader_parameter("top_color", top)
 	mat.set_shader_parameter("bottom_color", bottom)
 	mat.set_shader_parameter("roughness", 1.0)
+	mat.set_shader_parameter("side_shade", side_shade)
+	return mat
+
+
+static func water_material(shallow: Color, deep: Color, quality_level: int = 2) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = WATER_SHADER
+	mat.set_shader_parameter("shallow_color", shallow)
+	mat.set_shader_parameter("deep_color", deep)
+	mat.set_shader_parameter("roughness", 0.16)
+	mat.set_shader_parameter("wave_strength", 0.012 if quality_level < 2 else 0.018)
+	mat.set_shader_parameter("wave_speed", 0.7 if quality_level < 2 else 0.85)
+	mat.render_priority = 1
 	return mat
 
 
@@ -64,6 +78,7 @@ static func validate_shaders() -> Array[String]:
 		"res://shaders/stylized/stylized_grass.gdshader",
 		"res://shaders/stylized/stylized_rock.gdshader",
 		"res://shaders/stylized/stylized_cloud.gdshader",
+		"res://shaders/stylized/stylized_water.gdshader",
 	]:
 		var shader: Shader = load(path)
 		if shader == null:
