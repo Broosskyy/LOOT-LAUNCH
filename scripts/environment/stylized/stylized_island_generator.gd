@@ -216,8 +216,8 @@ static func _build_grass_cap(
 		mid[i] = Vector3(outer[i].x * 0.62, 0.008, outer[i].z * 0.62)
 	for i in range(segments):
 		var next: int = (i + 1) % segments
-		var shade: float = 0.92 + sin(float(i) * 1.4 + variant) * 0.04
-		var col := Color(shade * 0.96, shade, shade * 0.94, 1.0)
+		var shade: float = 0.90 + sin(float(i) * 1.4 + variant) * 0.05 + float(island_index % 3) * 0.012
+		var col := Color(shade * 0.95, shade, shade * 0.93, 1.0)
 		_add_flat_tri(top, Vector3.ZERO, mid[i], mid[next], Vector3.UP, col)
 		_add_flat_tri(top, mid[i], outer[i], outer[next], Vector3.UP, col)
 		_add_flat_tri(top, mid[i], outer[next], mid[next], Vector3.UP, col)
@@ -258,8 +258,8 @@ static func _build_rock_body(
 		var t0: float = float(ring_index) / float(profile.size())
 		for i in range(segments):
 			var next: int = (i + 1) % segments
-			var shade: float = 0.86 - t0 * 0.22 + sin(float(i) * 1.15 + variant) * 0.04
-			var col := Color(shade, shade * 0.97, shade * 0.93, 1.0)
+			var shade: float = 0.88 - t0 * 0.24 + sin(float(i) * 1.15 + variant) * 0.05
+			var col := Color(shade, shade * 0.96, shade * 0.90, 1.0)
 			_add_quad_faceted(target, upper[i], upper[next], lower[next], lower[i], col)
 	var last_ring: PackedVector3Array = rings[-1]
 	var last_layer: Dictionary = profile[-1]
@@ -279,21 +279,21 @@ static func _build_rock_body(
 		)
 	for i in range(segments):
 		var next: int = (i + 1) % segments
-		var shade: float = 0.48 + sin(float(i) * 0.8) * 0.03
+		var shade: float = 0.56 + sin(float(i) * 0.8) * 0.03
 		var col := Color(shade, shade * 0.96, shade * 0.92, 1.0)
 		_add_quad_faceted(bottom, last_ring[i], last_ring[next], mid_ring[next], mid_ring[i], col)
 	var tip_cluster: Array = _bottom_tip_cluster(last_ring, last_layer, variant, island_index, radius)
 	for i in range(segments):
 		var next: int = (i + 1) % segments
 		var tip: Vector3 = tip_cluster[i % tip_cluster.size()]
-		var shade: float = 0.40 + float(i % 3) * 0.03
-		var col := Color(shade, shade * 0.96, shade * 0.92, 1.0)
+		var shade: float = 0.52 + float(i % 3) * 0.03
+		var col := Color(shade, shade * 0.96, shade * 0.90, 1.0)
 		_add_flat_tri(bottom, mid_ring[i], mid_ring[next], tip, _face_normal(mid_ring[i], mid_ring[next], tip), col)
 	var underside := SurfaceTool.new()
 	underside.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in range(1, tip_cluster.size() - 1):
 		var n := Vector3.DOWN
-		_add_flat_tri(underside, tip_cluster[0], tip_cluster[i + 1], tip_cluster[i], n, Color(0.36, 0.34, 0.32, 1.0))
+		_add_flat_tri(underside, tip_cluster[0], tip_cluster[i + 1], tip_cluster[i], n, Color(0.58, 0.56, 0.54, 1.0))
 	mesh_fn.call(root, cliff.commit(), StylizedTypedAccess.material(mats, cliff_key, "rock_dark"))
 	mesh_fn.call(root, bottom.commit(), StylizedTypedAccess.material(mats, bottom_key, "rock"))
 	mesh_fn.call(root, underside.commit(), StylizedTypedAccess.material(mats, bottom_key, "rock"))

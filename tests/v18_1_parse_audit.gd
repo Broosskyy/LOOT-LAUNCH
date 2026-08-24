@@ -6,6 +6,7 @@ extends SceneTree
 const SCRIPT_PATHS: Array[String] = [
 	"res://scripts/environment/stylized/stylized_typed_access.gd",
 	"res://scripts/environment/stylized/stylized_material_library.gd",
+	"res://scripts/environment/stylized/stylized_shader_library.gd",
 	"res://scripts/environment/stylized/stylized_lighting.gd",
 	"res://scripts/environment/stylized/stylized_island_generator.gd",
 	"res://scripts/environment/stylized/stylized_vegetation_generator.gd",

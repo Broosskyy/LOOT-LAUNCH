@@ -290,7 +290,7 @@ func _build_materials() -> void:
 		"cheek": _material(Color("ff86a8"), 0.54, 0.0),
 	}
 	if _uses_stylized_v18():
-		StylizedMaterialLibrary.apply_palette(mats, Callable(self, "_material"), Callable(self, "_transparent_material"))
+		StylizedMaterialLibrary.apply_palette(mats, Callable(self, "_material"), Callable(self, "_transparent_material"), quality_level)
 	elif expedition_key == "crystal_forge":
 		mats.rock = _material(Color("394666"), 0.86, 0.04)
 		mats.rock_mid = _material(Color("283653"), 0.90, 0.02)

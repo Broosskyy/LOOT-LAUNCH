@@ -22,8 +22,10 @@ static func _stone_material(mats: Dictionary, tone: String = "main") -> Material
 			return StylizedTypedAccess.material(mats, "stone_warm", "cliff_warm")
 		"path":
 			return StylizedTypedAccess.material(mats, "path_stone", "stone_light")
+		"ruin":
+			return StylizedTypedAccess.material(mats, "ruin_stone", "stone_main")
 		_:
-			return StylizedTypedAccess.material(mats, "stone_main", "rock")
+			return StylizedTypedAccess.material(mats, "ruin_stone", "stone_main")
 
 
 static func _face_normal(a: Vector3, b: Vector3, c: Vector3) -> Vector3:
