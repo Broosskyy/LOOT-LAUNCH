@@ -3,6 +3,7 @@ class_name StylizedGroundRuinsKit
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
+const Toolkit = preload("res://scripts/environment/stylized/mesh/stylized_mesh_toolkit.gd")
 
 ## V27 — Modular stylized ground & ruins meshes (beveled blocks, faceted stones).
 
@@ -106,23 +107,8 @@ static func add_wall_segment(
 	root.position = pos
 	root.rotation_degrees.y = rot_y
 	parent.add_child(root)
-	var blocks: Array = [
-		{"p": Vector3(-1.05, 0.0, 0.0), "s": Vector3(0.72, 0.56, 0.5), "v": 0, "t": "main"},
-		{"p": Vector3(-0.28, 0.0, 0.04), "s": Vector3(0.78, 0.68, 0.48), "v": 1, "t": "warm"},
-		{"p": Vector3(0.52, 0.0, -0.02), "s": Vector3(0.68, 0.48, 0.46), "v": 2, "t": "main"},
-		{"p": Vector3(1.18, 0.0, 0.03), "s": Vector3(0.74, 0.62, 0.5), "v": 3, "t": "dark"},
-		{"p": Vector3(-0.62, 0.56, 0.0), "s": Vector3(0.82, 0.42, 0.52), "v": 4, "t": "light"},
-		{"p": Vector3(0.42, 0.68, 0.02), "s": Vector3(0.7, 0.38, 0.48), "v": 5, "t": "warm"},
-	]
-	if broken:
-		blocks.remove_at(3)
-		blocks.remove_at(1)
-	for i in range(blocks.size()):
-		var block: Dictionary = blocks[i]
-		place_ruin_block(
-			root, block["p"], block["s"], mats, mesh_fn,
-			int(block["v"]), seed + i * 11, str(block["t"])
-		)
+	var mesh: ArrayMesh = Toolkit.wall_segment(2.6, 1.05, 0.48, 3, 4, true, broken, seed, 1)
+	mesh_fn.call(root, mesh, _stone_material(mats, "ruin"), Vector3.ZERO)
 
 
 static func add_pillar(
@@ -184,9 +170,10 @@ static func add_plinth(
 	root.position = pos
 	root.rotation_degrees.y = rot_y
 	parent.add_child(root)
-	place_ruin_block(root, Vector3(0.0, 0.0, 0.0), Vector3(1.05, 0.24, 1.05), mats, mesh_fn, 0, seed, "dark")
-	place_ruin_block(root, Vector3(0.0, 0.24, 0.0), Vector3(0.82, 0.32, 0.82), mats, mesh_fn, 1, seed + 2, "main")
-	place_ruin_block(root, Vector3(0.0, 0.56, 0.0), Vector3(0.92, 0.16, 0.92), mats, mesh_fn, 2, seed + 4, "light")
+	var mesh: ArrayMesh = Toolkit.octagonal_plinth(0.72, 0.48, 0.58, seed, 1)
+	mesh_fn.call(root, mesh, _stone_material(mats, "main"), Vector3.ZERO)
+	var cap: ArrayMesh = Toolkit.roof_cap(Toolkit.RoofKind.PYRAMIDAL_CAP, 0.72, 0.72, 0.22, 0.06, seed + 3, 0.04, 1)
+	mesh_fn.call(root, cap, _stone_material(mats, "light"), Vector3(0.0, 0.58, 0.0))
 
 
 static func add_arch_fragment(
@@ -201,10 +188,8 @@ static func add_arch_fragment(
 	root.position = pos
 	root.rotation_degrees.y = rot_y
 	parent.add_child(root)
-	add_pillar(root, Vector3(-0.95, 0.0, 0.0), 0.0, mats, mesh_fn, true, seed)
-	add_pillar(root, Vector3(0.95, 0.0, 0.0), 0.0, mats, mesh_fn, true, seed + 40)
-	place_ruin_block(root, Vector3(-0.45, 1.02, 0.0), Vector3(0.52, 0.28, 0.48), mats, mesh_fn, 3, seed + 50, "warm", Vector3(0, 0, 18))
-	place_ruin_block(root, Vector3(0.35, 1.06, 0.02), Vector3(0.48, 0.24, 0.44), mats, mesh_fn, 4, seed + 51, "main", Vector3(0, 0, -12))
+	var mesh: ArrayMesh = Toolkit.arch(2.1, 1.25, 0.42, 8, seed, true, 0.05, 1)
+	mesh_fn.call(root, mesh, _stone_material(mats, "ruin"), Vector3.ZERO)
 
 
 static func add_corner_ruin(

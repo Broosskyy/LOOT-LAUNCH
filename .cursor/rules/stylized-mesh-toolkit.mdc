@@ -1,0 +1,14 @@
+---
+description: Prefer V33 stylized mesh toolkit over primitive stacking for world geometry
+globs: scripts/environment/stylized/**
+alwaysApply: false
+---
+
+# Stylized Mesh Toolkit (V33+)
+
+When adding or updating stylized world geometry:
+
+- Use `StylizedMeshToolkit` builders in `scripts/environment/stylized/mesh/`
+- Do **not** use raw `BoxMesh`, `CylinderMesh`, or `TorusMesh` as final visible hero geometry when a toolkit builder fits
+- Keep irregularity subtle (0.05–0.15) and seed-deterministic
+- See `docs/V33_STYLIZED_MESH_TOOLKIT.md`

@@ -3,6 +3,10 @@ class_name StylizedMeshLibrary
 
 ## V27 — Reusable Godot-native procedural mesh builders (GLES-safe, no textures).
 
+const Toolkit = preload("res://scripts/environment/stylized/mesh/stylized_mesh_toolkit.gd")
+const Common = preload("res://scripts/environment/stylized/mesh/stylized_mesh_common.gd")
+const Stones = preload("res://scripts/environment/stylized/mesh/stylized_stone_builder.gd")
+
 
 static func _rng(seed: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
@@ -33,36 +37,7 @@ static func _shade_color(shade: float, mul: Color = Color.WHITE) -> Color:
 
 
 static func beveled_box(size: Vector3, bevel: float, seed: int, shade: float = 0.86) -> ArrayMesh:
-	var rng := _rng(3000 + seed)
-	var hx: float = size.x * 0.5
-	var hy: float = size.y
-	var hz: float = size.z * 0.5
-	var b: float = minf(bevel, minf(hx, hz) * 0.38)
-	var j := func(v: Vector3) -> Vector3:
-		return v + Vector3(rng.randf_range(-0.025, 0.025), rng.randf_range(0.0, 0.02), rng.randf_range(-0.025, 0.025))
-	var bot := [
-		j.call(Vector3(-hx, 0.0, -hz)), j.call(Vector3(hx, 0.0, -hz)),
-		j.call(Vector3(hx, 0.0, hz)), j.call(Vector3(-hx, 0.0, hz)),
-	]
-	var top_outer := [
-		j.call(Vector3(-hx, hy, -hz)), j.call(Vector3(hx, hy, -hz)),
-		j.call(Vector3(hx, hy, hz)), j.call(Vector3(-hx, hy, hz)),
-	]
-	var top_inner := [
-		j.call(Vector3(-hx + b, hy, -hz + b)), j.call(Vector3(hx - b, hy, -hz + b)),
-		j.call(Vector3(hx - b, hy, hz - b)), j.call(Vector3(-hx + b, hy, hz - b)),
-	]
-	var col := _shade_color(shade)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_add_quad(st, bot[0], bot[1], bot[2], bot[3], col * Color(0.78, 0.76, 0.74, 1.0))
-	_add_quad(st, top_inner[0], top_inner[1], top_inner[2], top_inner[3], col * Color(1.04, 1.04, 1.02, 1.0))
-	for i in range(4):
-		var n: int = (i + 1) % 4
-		_add_quad(st, bot[i], bot[n], top_outer[n], top_outer[i], col * Color(0.86, 0.84, 0.82, 1.0))
-		_add_tri(st, top_outer[i], top_outer[n], top_inner[n], col * Color(0.94, 0.92, 0.9, 1.0))
-		_add_tri(st, top_outer[i], top_inner[n], top_inner[i], col * Color(0.94, 0.92, 0.9, 1.0))
-	return st.commit()
+	return Toolkit.beveled_box(size, bevel, seed, shade, 0.0, 0.0, 0.06, 1, 1)
 
 
 static func tapered_cylinder(
@@ -102,26 +77,7 @@ static func tapered_cylinder(
 
 
 static func octagonal_plinth(outer_radius: float, inner_radius: float, height: float, seed: int) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var sides: int = 8
-	var rng := _rng(5200 + seed)
-	for layer in range(2):
-		var y0: float = float(layer) * height * 0.5
-		var y1: float = float(layer + 1) * height * 0.5
-		var r0: float = outer_radius if layer == 0 else inner_radius * 1.08
-		var r1: float = outer_radius * 0.92 if layer == 0 else inner_radius
-		for i in range(sides):
-			var a0: float = TAU * float(i) / float(sides)
-			var a1: float = TAU * float(i + 1) / float(sides)
-			var shade: float = 0.74 + float(layer) * 0.08 + sin(float(i) * 0.9) * 0.04
-			var col := _shade_color(shade)
-			var p00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0) + Vector3(0, 0, rng.randf_range(-0.01, 0.01))
-			var p10 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
-			var p01 := Vector3(cos(a0) * r1, y1, sin(a0) * r1)
-			var p11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
-			_add_quad(st, p00, p10, p11, p01, col)
-	return st.commit()
+	return Toolkit.octagonal_plinth(outer_radius, inner_radius, height, seed, 1)
 
 
 static func faceted_crystal(height: float, base_radius: float, seed: int, sides: int = 0) -> ArrayMesh:
@@ -145,26 +101,19 @@ static func faceted_crystal(height: float, base_radius: float, seed: int, sides:
 
 
 static func path_stone(variant: int, seed: int) -> ArrayMesh:
-	var rng := _rng(8800 + variant * 19 + seed)
-	var stretch: float = [1.0, 1.08, 0.92, 1.12, 0.95, 1.05, 0.98, 1.1][variant % 8]
-	var width: float = rng.randf_range(0.68, 0.96) * stretch
-	var depth: float = rng.randf_range(0.58, 0.86) / stretch
-	var height: float = rng.randf_range(0.12, 0.18)
-	var bevel: float = rng.randf_range(0.06, 0.12)
-	return beveled_box(Vector3(width, height, depth), bevel, variant + seed, 0.9)
+	return Toolkit.path_stone(variant, seed, 1)
 
 
 static func small_rock(variant: int, seed: int) -> ArrayMesh:
-	var rng := _rng(7700 + variant * 29 + seed)
 	match variant % 4:
 		0:
-			return beveled_box(Vector3(rng.randf_range(0.32, 0.48), rng.randf_range(0.14, 0.22), rng.randf_range(0.28, 0.4)), 0.05, seed, 0.84)
+			return Toolkit.irregular_stone(Stones.StoneKind.BLOCK_STONE, 0.22, 0.18, 5, 0.1, 0.1, 0.2, seed, 1)
 		1:
-			return beveled_box(Vector3(rng.randf_range(0.22, 0.34), rng.randf_range(0.28, 0.42), rng.randf_range(0.2, 0.3)), 0.04, seed + 1, 0.82)
+			return Toolkit.irregular_stone(Stones.StoneKind.TALL_ROCK, 0.16, 0.32, 5, 0.12, 0.25, 0.0, seed + 1, 1)
 		2:
-			return faceted_crystal(rng.randf_range(0.22, 0.36), rng.randf_range(0.12, 0.18), seed + 2, 4)
+			return faceted_crystal(0.28, 0.14, seed + 2, 4)
 		_:
-			return beveled_box(Vector3(rng.randf_range(0.38, 0.52), rng.randf_range(0.1, 0.16), rng.randf_range(0.34, 0.46)), 0.06, seed + 3, 0.86)
+			return Toolkit.irregular_stone(Stones.StoneKind.RUBBLE, 0.2, 0.14, 4, 0.14, 0.0, 0.35, seed + 3, 1)
 
 
 static func tapered_trunk(height: float, radius_bottom: float, radius_top: float, seed: int, segments: int = 6) -> ArrayMesh:
@@ -196,21 +145,7 @@ static func curved_lid(width: float, depth: float, height: float, seed: int) -> 
 
 
 static func ring_band(inner_r: float, outer_r: float, thickness: float, segments: int, seed: int) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in range(segments):
-		var a0: float = TAU * float(i) / float(segments)
-		var a1: float = TAU * float(i + 1) / float(segments)
-		var shade: float = 0.88 + sin(float(i + seed) * 0.7) * 0.05
-		var col := _shade_color(shade, Color(1.02, 0.96, 0.82, 1.0))
-		var ci0 := Vector3(cos(a0) * inner_r, 0, sin(a0) * inner_r)
-		var ci1 := Vector3(cos(a1) * inner_r, 0, sin(a1) * inner_r)
-		var co0 := Vector3(cos(a0) * outer_r, 0, sin(a0) * outer_r)
-		var co1 := Vector3(cos(a1) * outer_r, 0, sin(a1) * outer_r)
-		_add_quad(st, ci0, ci1, co1, co0, col)
-		_add_quad(st, ci0 + Vector3(0, thickness, 0), co0 + Vector3(0, thickness, 0), co1 + Vector3(0, thickness, 0), ci1 + Vector3(0, thickness, 0), col * Color(0.92, 0.9, 0.86, 1.0))
-		_add_quad(st, ci0, co0, co0 + Vector3(0, thickness, 0), ci0 + Vector3(0, thickness, 0), col * Color(0.84, 0.82, 0.78, 1.0))
-	return st.commit()
+	return Toolkit.segmented_ring(inner_r, outer_r, thickness, segments, seed, 0.04, 1)
 
 
 static func count_triangles(mesh: ArrayMesh) -> int:
