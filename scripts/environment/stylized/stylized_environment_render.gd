@@ -8,7 +8,7 @@ static func quality_profile(quality_level: int) -> Dictionary:
 	var q: int = clampi(quality_level, 0, 2)
 	return {
 		"ambient_energy": [0.42, 0.48, 0.54][q],
-		"exposure": [0.76, 0.78, 0.81][q],
+		"exposure": [0.77, 0.79, 0.82][q],
 		"glow_intensity": [0.0, 0.085, 0.095][q],
 		"glow_bloom": [0.0, 0.020, 0.022][q],
 		"glow_threshold": [2.0, 1.72, 1.70][q],

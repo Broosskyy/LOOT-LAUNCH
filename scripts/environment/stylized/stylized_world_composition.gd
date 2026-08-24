@@ -3,22 +3,22 @@ class_name StylizedWorldComposition
 
 const StartComp = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
 
-## V30 — Final Wolkengarten reference composition SSOT (supersedes V25 camera table).
+## V37 — Final Wolkengarten reference composition SSOT (supersedes V30 camera table).
 
 enum IslandRole { HERO_START, PRIMARY_DESTINATION, ROUTE, PLAYABLE, HERO_LANDMARK, VISTA, MICRO }
 
 
-const CAMERA_FOV := 52.0
-const CAMERA_PITCH := 18.0
-const CAMERA_LOOK_HEIGHT := 0.68
-const CAMERA_LOOK_AHEAD := 4.85
-const CAMERA_FOLLOW_DISTANCE := 10.15
-const CAMERA_FOLLOW_HEIGHT := 3.48
-const CAMERA_ROUTE_BLEND := 0.46
+const CAMERA_FOV := 54.0
+const CAMERA_PITCH := 16.5
+const CAMERA_LOOK_HEIGHT := 0.60
+const CAMERA_LOOK_AHEAD := 5.85
+const CAMERA_FOLLOW_DISTANCE := 10.65
+const CAMERA_FOLLOW_HEIGHT := 2.78
+const CAMERA_ROUTE_BLEND := 0.50
 
-const PLAYER_SPAWN_OFFSET := Vector3(-1.85, 0.0, 1.65)
-const CANNON_OFFSET := Vector3(1.05, 0.92, -2.05)
-const CANNON_VISUAL_SCALE := 1.0
+const PLAYER_SPAWN_OFFSET := Vector3(-1.68, 0.0, 1.82)
+const CANNON_OFFSET := Vector3(1.32, 0.92, -2.22)
+const CANNON_VISUAL_SCALE := 1.06
 
 const ROUTE_ISLANDS: Array[Dictionary] = [
 	{
@@ -28,7 +28,7 @@ const ROUTE_ISLANDS: Array[Dictionary] = [
 		"role": IslandRole.HERO_START,
 	},
 	{
-		"center": Vector3(5.2, 2.6, -13.5),
+		"center": Vector3(5.0, 2.85, -13.8),
 		"radius": 9.6,
 		"thickness": 1.32,
 		"role": IslandRole.PRIMARY_DESTINATION,
@@ -61,11 +61,11 @@ const ROUTE_ISLANDS: Array[Dictionary] = [
 
 const VISTA_ISLANDS: Array[Dictionary] = [
 	{"center": Vector3(-8.5, 5.8, -24.5), "radius": 4.8, "thickness": 0.82, "role": IslandRole.VISTA, "index": 20, "landmark": false},
-	{"center": Vector3(17.0, 5.0, -28.0), "radius": 5.0, "thickness": 0.78, "role": IslandRole.VISTA, "index": 21, "landmark": false},
-	{"center": Vector3(25.0, 6.2, -36.0), "radius": 8.0, "thickness": 0.95, "role": IslandRole.HERO_LANDMARK, "index": 22, "landmark": true},
-	{"center": Vector3(-4.0, 6.0, -32.5), "radius": 4.4, "thickness": 0.8, "role": IslandRole.VISTA, "index": 33, "landmark": false},
-	{"center": Vector3(11.0, 7.0, -42.0), "radius": 3.2, "thickness": 0.7, "role": IslandRole.MICRO, "index": 34, "landmark": false},
-	{"center": Vector3(-14.5, 6.8, -37.5), "radius": 2.8, "thickness": 0.68, "role": IslandRole.MICRO, "index": 35, "landmark": false},
+	{"center": Vector3(16.5, 5.4, -29.5), "radius": 4.6, "thickness": 0.76, "role": IslandRole.VISTA, "index": 21, "landmark": false},
+	{"center": Vector3(24.0, 8.8, -39.5), "radius": 8.4, "thickness": 0.98, "role": IslandRole.HERO_LANDMARK, "index": 22, "landmark": true},
+	{"center": Vector3(-4.5, 6.2, -33.0), "radius": 4.2, "thickness": 0.78, "role": IslandRole.VISTA, "index": 33, "landmark": false},
+	{"center": Vector3(13.5, 7.2, -46.0), "radius": 2.8, "thickness": 0.66, "role": IslandRole.MICRO, "index": 34, "landmark": false},
+	{"center": Vector3(-16.0, 7.0, -42.0), "radius": 2.6, "thickness": 0.64, "role": IslandRole.MICRO, "index": 35, "landmark": false},
 ]
 
 

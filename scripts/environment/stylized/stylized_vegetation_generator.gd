@@ -436,7 +436,7 @@ static func dress_start_island(
 	create_flower_cluster(parent, Vector3(-3.2, 0.0, 2.8), FlowerPreset.PINK_CLUSTER, 412, mats, mesh_fn)
 	# Trees — silhouette anchors (clustered).
 	create_tree_cluster(parent, StylizedStartComposition.TREE_POS, TreeVariant.TREE_A, TreeVariant.TREE_C, 701, mats, mesh_fn, 1.05, 0.78)
-	create_tree(parent, Vector3(5.2, 0.0, -0.8), TreeVariant.TREE_B, 0.88, 702, mats, mesh_fn)
+	create_tree(parent, Vector3(5.4, 0.0, -1.1), TreeVariant.TREE_B, 0.82, 702, mats, mesh_fn)
 	create_tree(parent, Vector3(-4.8, 0.0, -2.2), TreeVariant.TREE_C, 0.75, 703, mats, mesh_fn)
 	# Crystal garden accents.
 	create_shrub(parent, StylizedStartComposition.CRYSTAL_POS + Vector3(0.55, 0.0, 0.35), 0.9, 710, mats, mesh_fn)

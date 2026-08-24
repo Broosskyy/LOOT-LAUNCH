@@ -1751,7 +1751,7 @@ func _add_flight_pickup(pos: Vector3, kind: String, value: int, risk: bool, rout
 		torus.outer_radius = 0.58
 		torus.rings = 12
 		torus.ring_segments = 8
-		_mesh(root, torus, mats.coin, Vector3.ZERO, Vector3.ONE * (1.18 if risk else 1.0), Vector3(90, 0, 0))
+		_mesh(root, torus, mats.coin, Vector3.ZERO, Vector3.ONE * (1.24 if risk else 1.06), Vector3(90, 0, 0))
 		if risk:
 			var halo := TorusMesh.new()
 			halo.inner_radius = 0.64; halo.outer_radius = 0.71; halo.rings = 12; halo.ring_segments = 6

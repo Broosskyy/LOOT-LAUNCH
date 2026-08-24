@@ -55,7 +55,7 @@ static func decorate_hero_midground(
 	portal_root.position = Vector3(0.2, 0.0, 4.0)
 	portal_root.rotation_degrees.y = 6.0
 	parent.add_child(portal_root)
-	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.35)
+	StylizedPortalGenerator.build_monument(portal_root, mats, mesh_fn, transparent_fn, animated_nodes, 1.22)
 	var crystal_cluster: Node3D = StylizedCrystalGenerator.add_cluster(parent, Vector3(4.2, 0.0, 4.8), 0.95, mats, mesh_fn, false, true)
 	if crystal_cluster != null:
 		animated_nodes.append(crystal_cluster)

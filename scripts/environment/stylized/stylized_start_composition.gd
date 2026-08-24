@@ -26,7 +26,7 @@ const CORNER_RUIN_POS := Vector3(-5.2, 0.0, 3.8)
 const PILLAR_POS := Vector3(5.6, 0.0, 1.4)
 const PLINTH_POS := Vector3(-1.2, 0.0, -4.2)
 const SIGN_POS := Vector3(4.2, 0.0, 3.2)
-const TREE_POS := Vector3(-6.2, 0.0, 1.2)
+const TREE_POS := Vector3(-6.4, 0.0, 1.0)
 const CRYSTAL_POS := Vector3(-3.8, 0.0, -1.8)
 const FLOWER_CLUSTERS: Array[Vector3] = [
 	Vector3(-4.8, 0.0, 3.4),
