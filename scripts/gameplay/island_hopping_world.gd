@@ -46,9 +46,8 @@ const JUMP_SPEED := 8.2
 const WALK_GRAVITY := 21.0
 const MAX_FLIGHT_TIME := 9.5
 const AIM_DEADZONE := 34.0
-const AIM_MAX_DRAG := 360.0
-const MIN_PITCH := 18.0
-const MAX_PITCH := 48.0
+const AIM_MAX_DRAG := 480.0
+const HopBallistics = preload("res://scripts/gameplay/hop_ballistics.gd")
 const USE_STYLIZED_V18 := true
 const USE_PRODUCTION_ISLAND_0 := false
 const STYLIZED_CAMERA_FOV := 51.0
@@ -90,6 +89,8 @@ var ability_time := -1.0
 var aim_yaw := 0.0
 var base_aim_yaw := 0.0
 var aim_pitch := 29.0
+var aim_pitch_min := 8.0
+var aim_pitch_max := 62.0
 var aim_power := 0.64
 var gesture_start := Vector2.ZERO
 var gesture_last := Vector2.ZERO
@@ -125,6 +126,7 @@ var random := RandomNumberGenerator.new()
 var quality_level := 2
 var effect_density := 1.0
 var landing_scores: Array[float] = []
+var launch_grace_left := 0.0
 var flight_right_input := 0.0
 var trail_pool: Array = []
 var spark_pool: Array = []
@@ -237,6 +239,7 @@ func begin(value: Dictionary, selected_lootling: String, selected_cannon: String
 	_build_fx_pool()
 	_build_islands()
 	_build_source_cannon()
+	_recompute_aim_pitch_limits()
 	_build_player()
 	_build_route()
 	_build_target_contents()
@@ -585,6 +588,55 @@ func _build_islands() -> void:
 		_add_floating_island(Vector3(-38.0, 48.0, -236.0), 4.4, 0.9, false, 14)
 	_add_airship(Vector3(-14.0, 12.0, -18.0), 0.0)
 	_add_airship(Vector3(24.0, 33.0, -142.0), 2.4)
+
+
+func _recompute_aim_pitch_limits() -> void:
+	var limits: Vector2 = HopBallistics.compute_world_pitch_limits(route_centers, route_cannons, cannon_key, GRAVITY)
+	aim_pitch_min = limits.x
+	aim_pitch_max = limits.y
+	aim_pitch = clampf(aim_pitch, aim_pitch_min, aim_pitch_max)
+
+
+func debug_get_aim_pitch_limits() -> Vector2:
+	return Vector2(aim_pitch_min, aim_pitch_max)
+
+
+func debug_validate_all_routes_reachable() -> Array:
+	var failures: Array = []
+	for route_index in range(route_centers.size() - 1):
+		if route_index >= route_cannons.size():
+			continue
+		var pivot: Node3D = route_cannons[route_index].get_node_or_null("AimPivot")
+		if pivot == null:
+			failures.append(route_index)
+			continue
+		var reachable := HopBallistics.route_is_reachable(
+			pivot.global_position,
+			route_centers[route_index + 1],
+			float(route_radii[route_index + 1]),
+			cannon_key,
+			aim_pitch_min,
+			aim_pitch_max,
+			GRAVITY
+		)
+		if not reachable:
+			failures.append(route_index)
+	return failures
+
+
+func debug_prepare_nominal_shot() -> void:
+	_set_default_ballistic_aim()
+	_update_cannon_direction()
+	_update_trajectory()
+
+
+func debug_wait_flight_resolve(max_time: float, step: float) -> bool:
+	var elapsed := 0.0
+	while hop_state == HopState.FLYING and elapsed < max_time:
+		_physics_process(step)
+		_process(step)
+		elapsed += step
+	return hop_state == HopState.LANDED
 
 
 func _uses_stylized_v18() -> bool:
@@ -1398,14 +1450,18 @@ func _set_default_ballistic_aim() -> void:
 	var delta: Vector3 = route_centers[current_island_index + 1] - cannon_pivot.global_position
 	base_aim_yaw = rad_to_deg(atan2(delta.x, -delta.z))
 	aim_yaw = base_aim_yaw
-	aim_power = 0.72
 	var distance := Vector2(delta.x, delta.z).length()
+	aim_power = clampf(0.64 + distance / 58.0, 0.70, 0.98)
 	var speed := _launch_speed()
 	var discriminant := pow(speed, 4.0) - GRAVITY * (GRAVITY * distance * distance + 2.0 * delta.y * speed * speed)
 	if discriminant > 0.0:
-		aim_pitch = clampf(rad_to_deg(atan((speed * speed - sqrt(discriminant)) / (GRAVITY * distance))), MIN_PITCH, MAX_PITCH)
+		aim_pitch = clampf(
+			rad_to_deg(atan((speed * speed - sqrt(discriminant)) / (GRAVITY * distance))),
+			aim_pitch_min,
+			aim_pitch_max
+		)
 	else:
-		aim_pitch = 32.0
+		aim_pitch = clampf(32.0, aim_pitch_min, aim_pitch_max)
 
 
 func _create_cannon(node_name: String) -> Node3D:
@@ -1563,46 +1619,55 @@ func _add_lootling_theme(root: Node3D, active_key: String) -> void:
 func _build_route() -> void:
 	for route_index in range(route_centers.size() - 1):
 		var pivot: Node3D = route_cannons[route_index].get_node("AimPivot")
-		var delta: Vector3 = route_centers[route_index + 1] - pivot.global_position
-		var horizontal_distance := Vector2(delta.x, delta.z).length()
-		var yaw := atan2(delta.x, -delta.z)
-		var speed := 18.0 + 0.72 * 9.5
-		var disc := pow(speed, 4.0) - GRAVITY * (GRAVITY * horizontal_distance * horizontal_distance + 2.0 * delta.y * speed * speed)
-		var pitch := deg_to_rad(30.0)
-		if disc > 0.0:
-			pitch = atan((speed * speed - sqrt(disc)) / (GRAVITY * horizontal_distance))
-		var direction := Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)).normalized()
+		var horizontal_distance := Vector2(
+			route_centers[route_index + 1].x - pivot.global_position.x,
+			route_centers[route_index + 1].z - pivot.global_position.z
+		).length()
+		var power := clampf(0.64 + horizontal_distance / 58.0, 0.70, 0.98)
+		var launch: Dictionary = HopBallistics.nominal_route_launch(
+			pivot.global_position,
+			route_centers[route_index + 1],
+			power,
+			cannon_key,
+			aim_pitch_min,
+			aim_pitch_max,
+			GRAVITY
+		)
+		var direction: Vector3 = launch.direction
 		var route_right := Vector3(-direction.z, 0.0, direction.x).normalized()
-		var origin := pivot.global_position + direction * 2.85
-		var velocity := direction * speed
+		var origin: Vector3 = launch.origin
+		var velocity: Vector3 = launch.velocity
 		var contact_distance := maxf(5.0, horizontal_distance - route_radii[route_index + 1] * 0.78)
 		var contact_time := contact_distance / maxf(1.0, Vector2(velocity.x, velocity.z).length())
-		# Each variant preserves the transparent economy: two 25-coin risks and
-		# one risk crystal per hop, while their positions rotate with the seed.
 		var risk_patterns := [[1, 4, 5], [0, 3, 5], [2, 5, 6]]
 		var active_risks: Array = risk_patterns[(route_variant + route_index) % risk_patterns.size()]
-		if _uses_stylized_v18() and route_index == 0:
-			var ring_points: Array[Vector3] = StylizedWorldComposition.ring_arc_for_hop(
-				0, Vector3(route_centers[0]), Vector3(route_centers[1])
-			)
-			for i in range(ring_points.size()):
-				var pos: Vector3 = ring_points[i]
-				var risk: bool = i in active_risks
-				var kind: String = "crystal" if i == ring_points.size() - 1 else "coin"
-				var value: int = 1 if kind == "crystal" else 25 if risk else 15
-				_add_flight_pickup(pos, kind, value, risk, route_index)
-		else:
-			for i in range(7):
-				var time := contact_time * float(i + 1) / 8.0
-				var pos := origin + velocity * time + Vector3.DOWN * (0.5 * GRAVITY * time * time)
-				var risk := i in active_risks
-				var lane_offset := (2.0 + route_index * 0.18) * (-1.0 if i % 2 == 0 else 1.0) if risk else sin(float(i) * 0.8 + route_index) * 0.18
-				pos += route_right * lane_offset
-				var kind := "crystal" if i == 5 else "coin"
-				var value := 1 if kind == "crystal" else 25 if risk else 15
-				_add_flight_pickup(pos, kind, value, risk, route_index)
+		var ring_points: Array[Vector3] = HopBallistics.ring_positions_for_route(
+			pivot.global_position,
+			route_centers[route_index + 1],
+			power,
+			cannon_key,
+			aim_pitch_min,
+			aim_pitch_max,
+			5,
+			GRAVITY
+		)
+		for i in range(ring_points.size()):
+			var pos: Vector3 = ring_points[i]
+			var risk: bool = i in active_risks
+			var kind: String = "crystal" if i == ring_points.size() - 1 else "coin"
+			var value: int = 1 if kind == "crystal" else 25 if risk else 15
+			_add_flight_pickup(pos, kind, value, risk, route_index)
+		for i in range(2):
+			var time := contact_time * float(i + 3) / 8.0
+			var pos := HopBallistics.trajectory_point(origin, velocity, time, GRAVITY)
+			var risk := (i + 5) in active_risks
+			var lane_offset := (2.0 + route_index * 0.18) * (-1.0 if i % 2 == 0 else 1.0) if risk else sin(float(i) * 0.8 + route_index) * 0.18
+			pos += route_right * lane_offset
+			var kind := "coin"
+			var value := 25 if risk else 15
+			_add_flight_pickup(pos, kind, value, risk, route_index)
 		var feature_time := contact_time * 0.58
-		var feature_center := origin + velocity * feature_time + Vector3.DOWN * (0.5 * GRAVITY * feature_time * feature_time)
+		var feature_center := HopBallistics.trajectory_point(origin, velocity, feature_time, GRAVITY)
 		_add_booster(feature_center + route_right * (3.5 if (route_variant + route_index) % 2 == 0 else -3.5), route_index)
 		_add_moving_obstacle(feature_center + route_right * (-4.4 if route_index % 2 == 0 else 4.4), route_right, route_index)
 	var first_center: Vector3 = Vector3(route_centers[0])
@@ -1894,6 +1959,7 @@ func primary_action() -> void:
 
 
 func _enter_cannon() -> void:
+	_reset_gameplay_input_state()
 	_set_state(HopState.ENTERING)
 	move_input = Vector2.ZERO
 	player.velocity = Vector3.ZERO
@@ -1921,11 +1987,10 @@ func _update_aim_gesture(pos: Vector2) -> void:
 	gesture_last = pos
 	gesture_distance = minf(total.length(), AIM_MAX_DRAG)
 	var yaw_sensitivity := 0.078 if cannon_key == "thunder" else 0.055 if cannon_key == "portal" else 0.065
-	var pitch_sensitivity := 0.060 if cannon_key == "thunder" else 0.043 if cannon_key == "portal" else 0.050
-	# Shooter-like mapping: right turns right and an upward swipe raises the
-	# barrel. This is considerably easier to learn than the old inverted drag.
-	aim_yaw = clampf(aim_yaw + delta.x * yaw_sensitivity, base_aim_yaw - 28.0, base_aim_yaw + 28.0)
-	aim_pitch = clampf(aim_pitch - delta.y * pitch_sensitivity, MIN_PITCH, MAX_PITCH)
+	var pitch_sensitivity := 0.078 if cannon_key == "thunder" else 0.058 if cannon_key == "portal" else 0.072
+	# Shooter-like mapping: right turns right and an upward swipe raises the barrel.
+	aim_yaw = clampf(aim_yaw + delta.x * yaw_sensitivity, base_aim_yaw - 32.0, base_aim_yaw + 32.0)
+	aim_pitch = clampf(aim_pitch - delta.y * pitch_sensitivity, aim_pitch_min, aim_pitch_max)
 	var normalized := clampf((gesture_distance - AIM_DEADZONE) / (AIM_MAX_DRAG - AIM_DEADZONE), 0.0, 1.0)
 	aim_power = maxf(aim_power, lerpf(0.28, 1.0, pow(normalized, 0.78)))
 	_update_cannon_direction()
@@ -1934,9 +1999,15 @@ func _update_aim_gesture(pos: Vector2) -> void:
 
 
 func _aim_direction() -> Vector3:
-	var yaw := deg_to_rad(aim_yaw)
-	var pitch := deg_to_rad(aim_pitch)
-	return Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)).normalized()
+	return HopBallistics.aim_direction(aim_yaw, aim_pitch)
+
+
+func _launch_velocity() -> Vector3:
+	return _aim_direction() * _launch_speed()
+
+
+func _launch_origin() -> Vector3:
+	return cannon_pivot.global_position + _aim_direction() * HopBallistics.MUZZLE_OFFSET
 
 
 func _update_cannon_direction() -> void:
@@ -1947,10 +2018,7 @@ func _update_cannon_direction() -> void:
 
 
 func _launch_speed() -> float:
-	var modifier := 1.0
-	if cannon_key == "thunder": modifier = 1.12
-	elif cannon_key == "portal": modifier = 0.94
-	return (18.0 + aim_power * 9.5) * modifier
+	return HopBallistics.launch_speed(aim_power, cannon_key)
 
 
 func _update_trajectory() -> void:
@@ -1958,13 +2026,21 @@ func _update_trajectory() -> void:
 		return
 	trajectory_root.visible = true
 	landing_marker.visible = true
-	var origin := cannon_pivot.global_position + _aim_direction() * 2.8
-	var velocity := _aim_direction() * _launch_speed()
-	for i in range(trajectory_root.get_child_count()):
-		var t := 0.09 + i * 0.09
-		var pos := origin + velocity * t + Vector3.DOWN * (0.5 * GRAVITY * t * t)
-		trajectory_root.get_child(i).global_position = pos
-	_predict_target_impact(origin, velocity)
+	var origin := _launch_origin()
+	var velocity := _launch_velocity()
+	var points: Array[Vector3] = HopBallistics.sample_trajectory_points(origin, velocity, trajectory_root.get_child_count(), 0.09, 0.09, GRAVITY)
+	for i in range(mini(points.size(), trajectory_root.get_child_count())):
+		trajectory_root.get_child(i).global_position = points[i]
+	var impact: Dictionary = HopBallistics.predict_impact(
+		origin,
+		velocity,
+		route_centers[mini(current_island_index + 1, route_centers.size() - 1)],
+		float(route_radii[mini(current_island_index + 1, route_radii.size() - 1)]),
+		GRAVITY,
+		MAX_FLIGHT_TIME
+	)
+	predicted_landing_valid = bool(impact.valid)
+	predicted_landing_position = impact.position
 	landing_marker.global_position = predicted_landing_position
 	landing_marker.material_override = mats.success if predicted_landing_valid else mats.red
 	var pulse := 1.0 + sin(idle_time * 7.0) * 0.12
@@ -1972,29 +2048,17 @@ func _update_trajectory() -> void:
 
 
 func _predict_target_impact(origin: Vector3, velocity: Vector3) -> void:
-	predicted_landing_valid = false
 	var target_index := mini(current_island_index + 1, route_centers.size() - 1)
-	var target_center: Vector3 = route_centers[target_index]
-	var target_height := target_center.y + 0.72
-	var previous := origin
-	var last := origin
-	var step := 0.04
-	for i in range(int(MAX_FLIGHT_TIME / step)):
-		var t := (i + 1) * step
-		var pos := origin + velocity * t + Vector3.DOWN * (0.5 * GRAVITY * t * t)
-		last = pos
-		if velocity.y - GRAVITY * t <= 0.0 and previous.y > target_height and pos.y <= target_height:
-			var denominator := previous.y - pos.y
-			var blend := clampf((previous.y - target_height) / denominator, 0.0, 1.0) if absf(denominator) > 0.0001 else 0.0
-			var impact := previous.lerp(pos, blend)
-			var distance := Vector2(impact.x - target_center.x, impact.z - target_center.z).length()
-			predicted_landing_valid = distance <= route_radii[target_index] * 0.82
-			predicted_landing_position = Vector3(impact.x, target_center.y + 0.08, impact.z)
-			return
-		previous = pos
-	# A failed arc still gets a warning marker rather than silently lying about
-	# a valid landing point.
-	predicted_landing_position = Vector3(last.x, target_center.y + 0.08, last.z)
+	var impact: Dictionary = HopBallistics.predict_impact(
+		origin,
+		velocity,
+		route_centers[target_index],
+		float(route_radii[target_index]),
+		GRAVITY,
+		MAX_FLIGHT_TIME
+	)
+	predicted_landing_valid = bool(impact.valid)
+	predicted_landing_position = impact.position
 
 
 func _fire() -> void:
@@ -2007,8 +2071,8 @@ func _fire() -> void:
 	projectile = CharacterBody3D.new()
 	projectile.name = "FlyingBouncer"
 	add_child(projectile)
-	projectile.global_position = cannon_pivot.global_position + _aim_direction() * 2.85
-	projectile.velocity = _aim_direction() * _launch_speed()
+	projectile.global_position = _launch_origin()
+	projectile.velocity = _launch_velocity()
 	var collision := CollisionShape3D.new()
 	var sphere := SphereShape3D.new()
 	sphere.radius = 0.5
@@ -2024,6 +2088,7 @@ func _fire() -> void:
 	AudioManager.play_launch()
 	_set_state(HopState.FLYING)
 	flight_time = 0.0
+	launch_grace_left = 0.24
 	launched.emit()
 	instruction_changed.emit("FLUG STEUERN  •  %d SPEZIALIMPULS%s VERFÜGBAR" % [ability_charges, "E" if ability_charges > 1 else ""])
 	_update_action_prompt()
@@ -2151,6 +2216,19 @@ func _update_walking(delta: float) -> void:
 	_update_action_prompt()
 
 
+func _should_land_on_target(next_center: Vector3, next_radius: float) -> bool:
+	var horizontal_to_target := Vector2(
+		projectile.global_position.x - next_center.x,
+		projectile.global_position.z - next_center.z
+	).length()
+	if horizontal_to_target > next_radius * 0.90:
+		return false
+	if projectile.velocity.y > 1.5:
+		return false
+	var height_above := projectile.global_position.y - next_center.y
+	return height_above >= -0.4 and height_above <= 4.6
+
+
 func _update_flight(delta: float) -> void:
 	flight_time += delta
 	portal_cooldown = maxf(0.0, portal_cooldown - delta)
@@ -2169,11 +2247,16 @@ func _update_flight(delta: float) -> void:
 	projectile.velocity.y -= GRAVITY * delta
 	var next_center: Vector3 = route_centers[current_island_index + 1]
 	var next_radius: float = route_radii[current_island_index + 1]
-	var collision := projectile.move_and_collide(projectile.velocity * delta)
+	var collision: KinematicCollision3D = null
+	if launch_grace_left > 0.0:
+		launch_grace_left = maxf(0.0, launch_grace_left - delta)
+		projectile.global_position += projectile.velocity * delta
+	else:
+		collision = projectile.move_and_collide(projectile.velocity * delta)
 	if collision:
 		var horizontal_to_target := Vector2(projectile.global_position.x - next_center.x, projectile.global_position.z - next_center.z).length()
-		var ledge_contact := horizontal_to_target < next_radius + 1.0 and projectile.global_position.y >= next_center.y + 0.15 and projectile.global_position.y <= next_center.y + 2.6
-		if ledge_contact or (horizontal_to_target < next_radius - 0.45 and projectile.velocity.y <= 0.0):
+		var ledge_contact := horizontal_to_target < next_radius + 1.2 and projectile.global_position.y >= next_center.y + 0.05 and projectile.global_position.y <= next_center.y + 4.2
+		if ledge_contact or _should_land_on_target(next_center, next_radius):
 			_land_on_target()
 			return
 		var normal: Vector3 = collision.get_normal()
@@ -2196,7 +2279,7 @@ func _update_flight(delta: float) -> void:
 	_spawn_flight_trail(delta)
 	projectile_visual.rotation.x += delta * 6.5
 	projectile_visual.rotation.z -= delta * 4.0
-	if projectile.global_position.distance_to(next_center + Vector3(0, 1.0, 0)) < next_radius - 0.45 and projectile.velocity.y <= 0.0 and projectile.global_position.y <= next_center.y + 2.2:
+	if _should_land_on_target(next_center, next_radius):
 		_land_on_target()
 	elif flight_time >= MAX_FLIGHT_TIME or projectile.global_position.y < next_center.y - 18.0:
 		_fail_route("ZIELINSEL VERFEHLT")
@@ -2708,6 +2791,17 @@ func _island_name(island_index: int) -> String:
 
 
 func _set_state(next: HopState) -> void:
+	if next != hop_state:
+		if next != HopState.AIMING:
+			active_pointer = -999
+			gesture_start = Vector2.ZERO
+			gesture_last = Vector2.ZERO
+			gesture_distance = 0.0
+			charge_time = 0.0
+		if next not in [HopState.ON_FOOT, HopState.LANDED]:
+			camera_orbit_pointer = -999
+		if next in [HopState.ENTERING, HopState.AIMING, HopState.FLYING, HopState.FAILED]:
+			move_input = Vector2.ZERO
 	hop_state = next
 	state_changed.emit(HopState.keys()[next])
 
@@ -2798,6 +2892,12 @@ func debug_drag_aim(screen_position: Vector2) -> void:
 	_update_aim_gesture(screen_position)
 
 
+func debug_fire_prepared_shot() -> void:
+	if hop_state != HopState.AIMING or fired:
+		return
+	_fire()
+
+
 func debug_release_aim() -> void:
 	active_pointer = -999
 	if gesture_distance >= AIM_DEADZONE or charge_time >= 0.18:
@@ -2831,6 +2931,15 @@ func debug_complete_current_objective() -> void:
 		objective_progress[current_island_index] = int(objective_progress.get(current_island_index, 0)) + 1
 	objective_changed.emit(int(objective_progress[current_island_index]), int(objective_requirements[current_island_index]), _objective_label(current_island_index))
 	_update_action_prompt()
+
+
+func debug_unlock_cannon_for_traversal() -> void:
+	if current_island_index <= 0:
+		return
+	debug_complete_current_objective()
+	if is_instance_valid(target_chest):
+		player.global_position = target_chest.global_position + Vector3(0.5, FLOOR_OFFSET, 0.5)
+	_open_chest()
 
 
 func debug_open_chest_and_finish() -> void:
