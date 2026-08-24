@@ -37,6 +37,17 @@ static func apply_palette(
 	mats["distant_rock"] = StylizedTypedAccess.opaque_material(material_fn, Color("9aa0ad"), 0.94, 0.0)
 	mats["bouncer"] = StylizedTypedAccess.opaque_material(material_fn, Color("f0a878"), 0.46, 0.02, Color("e88958"), 0.08)
 	mats["cheek"] = StylizedTypedAccess.opaque_material(material_fn, Color("ff96aa"), 0.5, 0.0)
+	# V21 hero model palette.
+	mats["cannon_dark_metal"] = mats["cannon_dark"]
+	mats["brass_gold"] = mats["brass"]
+	mats["chest_wood"] = mats["wood"]
+	mats["chest_metal"] = mats["brass"]
+	mats["portal_stone"] = mats["stone_dark"]
+	mats["portal_energy"] = mats["portal"]
+	mats["pad_stone"] = mats["stone_main"]
+	mats["pad_energy"] = mats["portal"]
+	mats["sign_wood"] = mats["wood"]
+	mats["sign_frame"] = mats["leaf_green"]
 	_configure_stylized_surface_flags(mats)
 	# Remap legacy keys used across world systems.
 	mats["grass"] = mats["grass_main"]

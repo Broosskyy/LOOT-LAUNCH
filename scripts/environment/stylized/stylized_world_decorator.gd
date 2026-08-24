@@ -7,7 +7,7 @@ const StylizedRuinGenerator = preload("res://scripts/environment/stylized/styliz
 const StylizedCrystalGenerator = preload("res://scripts/environment/stylized/stylized_crystal_generator.gd")
 const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
 const StylizedStartComposition = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
-const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
 
 
 static func decorate_start_island(
@@ -100,31 +100,8 @@ static func decorate_target_island(
 
 
 static func _add_teleport_pad(parent: Node3D, mats: Dictionary, mesh_fn: Callable, transparent_fn: Callable) -> void:
-	var pad: BoxMesh = BoxMesh.new()
-	pad.size = Vector3(1.55, 0.12, 1.55)
-	mesh_fn.call(parent, pad, StylizedTypedAccess.material(mats, "portal", "portal"), StylizedStartComposition.PAD_POS + Vector3(0.0, 0.08, 0.0))
-	var glow: CylinderMesh = CylinderMesh.new()
-	glow.top_radius = 0.5
-	glow.bottom_radius = 0.5
-	glow.height = 0.04
-	glow.radial_segments = 16
-	var glow_mat: Material = StylizedTypedAccess.transparent_material(transparent_fn, Color(0.62, 0.35, 0.98, 0.38))
-	mesh_fn.call(parent, glow, glow_mat, StylizedStartComposition.PAD_POS + Vector3(0.0, 0.15, 0.0), Vector3.ONE, Vector3(90, 0, 0))
+	StylizedHeroModels.build_pad(parent, StylizedStartComposition.PAD_POS, mats, mesh_fn, transparent_fn)
 
 
 static func _add_decor_chest(parent: Node3D, mats: Dictionary, mesh_fn: Callable, pos: Vector3) -> void:
-	var chest: Node3D = Node3D.new()
-	chest.position = pos
-	parent.add_child(chest)
-	var body: BoxMesh = BoxMesh.new()
-	body.size = Vector3(1.15, 0.62, 0.82)
-	mesh_fn.call(chest, body, StylizedTypedAccess.material(mats, "wood", "wood"), Vector3(0.0, 0.31, 0.0))
-	var lid: BoxMesh = BoxMesh.new()
-	lid.size = Vector3(1.2, 0.22, 0.86)
-	mesh_fn.call(chest, lid, StylizedTypedAccess.material(mats, "wood_light", "wood_light"), Vector3(0.0, 0.66, -0.02), Vector3.ONE, Vector3(-12, 0, 0))
-	var band: BoxMesh = BoxMesh.new()
-	band.size = Vector3(1.22, 0.12, 0.88)
-	mesh_fn.call(chest, band, StylizedTypedAccess.material(mats, "brass", "brass"), Vector3(0.0, 0.48, 0.0))
-	var lock: BoxMesh = BoxMesh.new()
-	lock.size = Vector3(0.18, 0.22, 0.1)
-	mesh_fn.call(chest, lock, StylizedTypedAccess.material(mats, "brass", "brass"), Vector3(0.0, 0.48, 0.46))
+	StylizedHeroModels.build_chest(parent, pos, mats, mesh_fn)

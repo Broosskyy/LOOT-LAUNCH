@@ -65,6 +65,7 @@ const StylizedIslandGenerator = preload("res://scripts/environment/stylized/styl
 const StylizedWorldDecorator = preload("res://scripts/environment/stylized/stylized_world_decorator.gd")
 const StylizedCloudGenerator = preload("res://scripts/environment/stylized/stylized_cloud_generator.gd")
 const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
+const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -1351,37 +1352,12 @@ func _create_cannon(node_name: String) -> Node3D:
 func _create_stylized_cannon(node_name: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = node_name
-	_mesh(root, _cylinder(1.35, 0.18, 18), mats.stone_dark, Vector3(0, -0.42, 0))
-	_mesh(root, _cylinder(1.05, 0.24, 18), mats.stone_main, Vector3(0, -0.24, 0))
-	_mesh(root, _cylinder(0.88, 0.14, 18), mats.brass, Vector3(0, -0.06, 0))
-	for corner in [Vector3(-0.78, -0.4, -0.62), Vector3(0.78, -0.4, -0.62), Vector3(-0.78, -0.4, 0.62), Vector3(0.78, -0.4, 0.62)]:
-		var foot := BoxMesh.new()
-		foot.size = Vector3(0.52, 0.18, 0.58)
-		_mesh(root, foot, mats.stone_main, corner)
 	var pivot := Node3D.new()
 	pivot.name = "AimPivot"
 	pivot.position = Vector3(0, 0.58, 0)
 	root.add_child(pivot)
-	var barrel := CylinderMesh.new()
-	barrel.top_radius = 0.48
-	barrel.bottom_radius = 0.66
-	barrel.height = 3.05
-	barrel.radial_segments = 16
-	_mesh(pivot, barrel, mats.cannon_dark, Vector3(0, 0, -1.42), Vector3.ONE, Vector3(90, 0, 0))
-	for z in [-0.05, -1.12, -2.48]:
-		_mesh(pivot, _cylinder(0.78, 0.17, 16), mats.brass, Vector3(0, 0, z), Vector3.ONE, Vector3(90, 0, 0))
-	var muzzle_ring := TorusMesh.new()
-	muzzle_ring.inner_radius = 0.58
-	muzzle_ring.outer_radius = 0.78
-	muzzle_ring.rings = 16
-	muzzle_ring.ring_segments = 8
-	_mesh(pivot, muzzle_ring, mats.brass, Vector3(0, 0, -2.86), Vector3.ONE, Vector3(90, 0, 0))
-	var receiver_mat: Material = mats.portal if cannon_key == "portal" else mats.crystal_violet
-	var glow_mesh := SphereMesh.new()
-	glow_mesh.radius = 0.34
-	glow_mesh.height = 0.62
-	var glow := _mesh(pivot, glow_mesh, receiver_mat, Vector3(0, 0, -2.92), Vector3(1.0, 0.26, 1.0))
-	glow.name = "MuzzleGlow"
+	StylizedHeroModels.build_cannon_visual(root, pivot, Callable(self, "_mesh"), mats, cannon_key)
+	StylizedHeroModels.add_cannon_collision(root)
 	return root
 
 
@@ -1646,6 +1622,9 @@ func _build_target_contents() -> void:
 func _create_chest() -> Node3D:
 	var root := Node3D.new()
 	root.name = "TreasureChest"
+	if _uses_stylized_v18():
+		StylizedHeroModels.build_gameplay_chest(root, Callable(self, "_mesh"), mats)
+		return root
 	_mesh(root, _box(Vector3(1.78, 0.78, 1.12)), mats.wood_light, Vector3(0, 0.42, 0))
 	_mesh(root, _box(Vector3(1.86, 0.16, 1.20)), mats.brass, Vector3(0, 0.12, 0))
 	for x in [-0.78, 0.78]:
