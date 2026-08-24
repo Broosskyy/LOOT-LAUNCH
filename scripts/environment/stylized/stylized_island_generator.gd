@@ -2,6 +2,7 @@ extends RefCounted
 class_name StylizedIslandGenerator
 
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+const TerrainSurface = preload("res://scripts/environment/stylized/stylized_terrain_surface.gd")
 
 ## V19 — Ring-based stylized floating island geometry.
 ## Four silhouette families (ROUND, LONG, OFFSET, TERRACED) with HERO / PLAYABLE / DISTANT LOD.
@@ -40,7 +41,9 @@ static func build(
 		mats, mesh_fn, cliff_key, bottom_key
 	)
 	if playable and island_index != 0:
-		_scatter_top_details(root, radius, island_index, mats, mesh_fn)
+		pass
+	if lod == IslandLOD.HERO:
+		TerrainSurface.dress_hero_island(root, radius, island_index, mats, mesh_fn, quality_level, island_index * 131 + route_variant)
 
 
 static func _resolve_lod(playable: bool, island_index: int) -> IslandLOD:

@@ -9,6 +9,7 @@ const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_librar
 const RuinsKit = preload("res://scripts/environment/stylized/stylized_ground_ruins_kit.gd")
 const VegGen = preload("res://scripts/environment/stylized/stylized_vegetation_generator.gd")
 const TypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
+const TerrainSurface = preload("res://scripts/environment/stylized/stylized_terrain_surface.gd")
 
 const MEGA_ISLAND_INDEX := 5
 const DEBUG_VIEW_META := "mega_island_debug_view"
@@ -50,6 +51,9 @@ static func compose(
 	_build_bridge(decor_root, recipe.get("bridge", {}), mats, mesh_fn)
 	_build_landmark(decor_root, recipe, mats, mesh_fn, quality_level)
 	_dress_vegetation(decor_root, recipe, mats, mesh_fn, quality_level, seed)
+	var surface_meta: Dictionary = TerrainSurface.dress_mega_island(
+		terrain_root, water_root, modules, recipe, mats, mesh_fn, quality_level, seed
+	)
 	if debug_view:
 		_build_debug_overlay(root, recipe)
 	var elevations: Array = []
@@ -73,6 +77,8 @@ static func compose(
 		"vertex_count": _count_vertices(root),
 		"module_count": modules.size(),
 		"connected": modules.size() >= 2,
+		"surface_dressed": true,
+		"surface_river_points": surface_meta.get("river_points", []),
 	}
 
 
@@ -123,7 +129,7 @@ static func _build_module(
 	_build_ellipse_cap(parent, pos, rx, rz, elevation, segments, mats, mesh_fn, rng, module_type)
 	_build_module_rock_skirt(parent, pos, rx, rz, elevation, segments, mats, mesh_fn, module_type)
 	if module_type == Types.ModuleType.RAVINE_SECTION:
-		_build_ravine_cut(parent, pos, rx, rz, elevation, mats, mesh_fn)
+		pass # V34 ravine walls applied in dress_mega_island
 	if module_type == Types.ModuleType.WATER_BASIN:
 		Water.build_pond(parent, pos + Vector3(0.0, elevation, 0.0), rx * 0.62, rz * 0.62, 0.28, mats, mesh_fn)
 

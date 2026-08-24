@@ -4,6 +4,7 @@ class_name StylizedGroundRuinsKit
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
 const Toolkit = preload("res://scripts/environment/stylized/mesh/stylized_mesh_toolkit.gd")
+const TerrainSurface = preload("res://scripts/environment/stylized/stylized_terrain_surface.gd")
 
 ## V27 — Modular stylized ground & ruins meshes (beveled blocks, faceted stones).
 
@@ -64,11 +65,12 @@ static func place_path_stones(
 	mesh_fn: Callable,
 	seed: int = 1200
 ) -> void:
+	TerrainSurface.dress_path_embedded(parent, waypoints, mats, mesh_fn, seed, 2)
 	for i in range(waypoints.size()):
 		var data: Dictionary = waypoints[i]
 		var mesh: ArrayMesh = build_path_stone_mesh(i % 8, seed + i * 7)
 		var pos: Vector3 = data["pos"]
-		pos.y = float(data.get("y", 0.04))
+		pos.y = float(data.get("y", 0.04)) - 0.025
 		mesh_fn.call(
 			parent,
 			mesh,
