@@ -1422,7 +1422,10 @@ func _add_waterfall(center: Vector3, radius: float, island_index: int) -> void:
 	var ribbon := BoxMesh.new()
 	ribbon.size = Vector3(1.6, 10.0, 0.12)
 	fall.mesh = ribbon
-	fall.material_override = _transparent_material(Color(0.32, 0.87, 1.0, 0.48))
+	if _uses_stylized_v18() and mats.has("waterfall"):
+		fall.material_override = mats.waterfall
+	else:
+		fall.material_override = _transparent_material(Color(0.32, 0.87, 1.0, 0.48))
 	fall.position = center + Vector3(radius * 0.54, -5.0, -radius * 0.72)
 	fall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(fall)
@@ -2164,6 +2167,9 @@ func _cannon_recoil() -> void:
 func _spawn_muzzle_burst(pos: Vector3) -> void:
 	_spawn_burst(pos, mats.violet, StylizedVFXController.cannon_burst_cap(quality_level))
 	_spawn_burst(pos + _aim_direction() * 0.2, mats.brass_light, mini(6, StylizedVFXController.cannon_burst_cap(quality_level) / 3))
+	var smoke_cap: int = StylizedVFXController.cannon_smoke_cap(quality_level)
+	if smoke_cap > 0:
+		_spawn_burst(pos + Vector3.UP * 0.12, mats.stone_dark, smoke_cap)
 
 
 func activate_special() -> void:
@@ -2620,8 +2626,10 @@ func _process(delta: float) -> void:
 			beacon.crystal.scale = Vector3.ONE * beacon_scale
 	for waterfall in waterfalls:
 		if is_instance_valid(waterfall.node):
-			waterfall.node.position.x = waterfall.origin.x + sin(idle_time * 1.4 + float(waterfall.phase)) * 0.08
-			waterfall.node.scale.y = 1.0 + sin(idle_time * 1.8 + float(waterfall.phase)) * 0.025
+			waterfall.node.position.x = waterfall.origin.x + sin(idle_time * 1.4 + float(waterfall.phase)) * 0.06
+			waterfall.node.scale.y = 1.0 + sin(idle_time * 1.8 + float(waterfall.phase)) * 0.035
+			if _uses_stylized_v18():
+				waterfall.node.position.y = waterfall.origin.y + sin(idle_time * 2.2 + float(waterfall.phase)) * 0.04
 	for ship in airships:
 		if is_instance_valid(ship.node):
 			ship.node.position = ship.origin + Vector3(sin(idle_time * 0.19 + float(ship.phase)) * 3.5, sin(idle_time * 0.48 + float(ship.phase)) * 0.5, cos(idle_time * 0.16 + float(ship.phase)) * 1.6)

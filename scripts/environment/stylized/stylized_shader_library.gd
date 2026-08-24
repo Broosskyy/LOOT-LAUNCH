@@ -102,7 +102,8 @@ static func crystal_material(
 	core: Color,
 	emission: Color,
 	energy: float,
-	quality_level: int = 2
+	quality_level: int = 2,
+	hero := false
 ) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = CRYSTAL_SHADER
@@ -111,6 +112,8 @@ static func crystal_material(
 	mat.set_shader_parameter("emission_color", emission)
 	mat.set_shader_parameter("emission_strength", energy)
 	mat.set_shader_parameter("roughness", 0.22 if quality_level >= 2 else 0.26)
+	mat.set_shader_parameter("pulse_speed", 1.6 if hero else 1.2)
+	mat.set_shader_parameter("sparkle_strength", 0.28 if hero and quality_level >= 2 else 0.12 if quality_level >= 1 else 0.0)
 	return mat
 
 
@@ -125,13 +128,14 @@ static func leaf_material(color: Color, roughness: float = 0.88, quality_level: 
 	return mat
 
 
-static func cloud_material(top: Color, bottom: Color, side_shade: float = 0.07) -> ShaderMaterial:
+static func cloud_material(top: Color, bottom: Color, side_shade: float = 0.07, depth_fade: float = 0.0) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = CLOUD_SHADER
 	mat.set_shader_parameter("top_color", top)
 	mat.set_shader_parameter("bottom_color", bottom)
 	mat.set_shader_parameter("roughness", 1.0)
 	mat.set_shader_parameter("side_shade", side_shade)
+	mat.set_shader_parameter("depth_fade", depth_fade)
 	return mat
 
 
@@ -145,6 +149,7 @@ static func water_material(shallow: Color, deep: Color, quality_level: int = 2, 
 	mat.set_shader_parameter("wave_strength", 0.012 if quality_level < 2 else 0.018)
 	mat.set_shader_parameter("wave_speed", 0.7 if quality_level < 2 else 0.85)
 	mat.set_shader_parameter("flow_strength", float(profile.macro_strength))
+	mat.set_shader_parameter("foam_strength", 0.35 if quality_level >= 2 and not waterfall else 0.18 if quality_level >= 1 and not waterfall else 0.0)
 	mat.set_shader_parameter("waterfall_mode", 1.0 if waterfall else 0.0)
 	mat.render_priority = 1
 	return mat

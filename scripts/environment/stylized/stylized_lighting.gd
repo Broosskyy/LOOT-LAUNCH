@@ -1,8 +1,9 @@
 extends RefCounted
 class_name StylizedLighting
 
-## V26/V36 stylized daylight — delegates to StylizedEnvironmentRender.
+## V26/V36/V39 stylized daylight — delegates to StylizedRenderEffects.
 
+const RenderEffects = preload("res://scripts/environment/stylized/stylized_render_effects.gd")
 const EnvironmentRender = preload("res://scripts/environment/stylized/stylized_environment_render.gd")
 
 
@@ -13,7 +14,7 @@ static func apply(
 	sun: DirectionalLight3D,
 	quality_level: int
 ) -> void:
-	EnvironmentRender.apply(world, environment, sky_material, sun, quality_level)
+	RenderEffects.apply(world, environment, sky_material, sun, quality_level)
 
 
 static func count_directional_lights(world: Node) -> int:

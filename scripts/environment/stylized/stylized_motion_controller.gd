@@ -7,20 +7,21 @@ const WIND_MATERIAL_KEYS: Array[String] = [
 	"grass_main", "grass_light", "grass_dark", "distant_grass",
 	"leaf_green", "leaf_light", "leaf_dark",
 ]
+const TREE_WIND_SCALE := 0.42
 
 
 static func wind_strength_for_quality(quality_level: int) -> float:
 	match clampi(quality_level, 0, 2):
 		0: return 0.0
-		1: return 0.032
-		_: return 0.042
+		1: return 0.028
+		_: return 0.038
 
 
 static func wind_speed_for_quality(quality_level: int) -> float:
 	match clampi(quality_level, 0, 2):
 		0: return 0.0
-		1: return 0.95
-		_: return 1.12
+		1: return 0.88
+		_: return 1.05
 
 
 static func configure_wind_materials(mats: Dictionary, quality_level: int) -> void:
@@ -33,17 +34,20 @@ static func configure_wind_materials(mats: Dictionary, quality_level: int) -> vo
 		var material: Material = mats[key]
 		if material is ShaderMaterial:
 			var shader_mat := material as ShaderMaterial
-			shader_mat.set_shader_parameter("wind_strength", strength)
+			var local_strength := strength
+			if key.begins_with("leaf"):
+				local_strength *= TREE_WIND_SCALE
+			shader_mat.set_shader_parameter("wind_strength", local_strength)
 			shader_mat.set_shader_parameter("wind_speed", speed)
 			shader_mat.set_shader_parameter("wind_phase", phase)
-			phase += 17.3
+			phase += 23.7 + float(key.hash() % 17) * 0.31
 
 
 static func cloud_drift_speed(depth_layer: int) -> float:
 	match clampi(depth_layer, 0, 2):
-		0: return 0.06
-		1: return 0.10
-		_: return 0.14
+		0: return 0.05
+		1: return 0.09
+		_: return 0.13
 
 
 static func update_clouds(clouds: Array, idle_time: float) -> void:
@@ -54,10 +58,12 @@ static func update_clouds(clouds: Array, idle_time: float) -> void:
 		var phase: float = float(cloud.get_meta("phase", 0.0))
 		var depth: int = int(cloud.get_meta("drift_depth", 1))
 		var speed: float = float(cloud.get_meta("drift_speed", cloud_drift_speed(depth)))
-		var amp_x: float = 0.82 + float(depth) * 0.32
-		var amp_z: float = 0.10 + float(depth) * 0.05
+		var amp_x: float = 0.74 + float(depth) * 0.36
+		var amp_z: float = 0.08 + float(depth) * 0.06
+		var amp_y: float = 0.04 + float(depth) * 0.02
 		cloud.position.x = origin.x + sin(idle_time * speed + phase) * amp_x
-		cloud.position.z = origin.z + cos(idle_time * speed * 0.82 + phase * 0.73) * amp_z
+		cloud.position.z = origin.z + cos(idle_time * speed * 0.78 + phase * 0.71) * amp_z
+		cloud.position.y = origin.y + sin(idle_time * speed * 0.42 + phase * 1.2) * amp_y
 
 
 static func update_animated_nodes(nodes: Array, delta: float, idle_time: float) -> void:
@@ -92,11 +98,11 @@ static func update_pickup_motion(items: Array, delta: float, idle_time: float) -
 		var node: Node3D = item.node
 		var phase: float = float(item.get("phase", 0.0))
 		var origin: Vector3 = item.get("origin", node.position)
-		node.rotation.y += delta * 1.85
-		node.rotation.x = sin(idle_time * 1.4 + phase) * 0.06
-		var bob: float = 0.06 + sin(idle_time * 2.1 + phase) * 0.024
+		node.rotation.y += delta * 1.55
+		node.rotation.x = sin(idle_time * 1.2 + phase) * 0.045
+		var bob: float = 0.04 + sin(idle_time * 1.85 + phase) * 0.018
 		if bool(item.get("objective", false)):
-			bob += 0.05
+			bob += 0.035
 		node.position.y = float(origin.y) + bob
 
 

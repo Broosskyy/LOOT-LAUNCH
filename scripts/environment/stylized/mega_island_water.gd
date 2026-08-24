@@ -2,6 +2,7 @@ extends RefCounted
 class_name MegaIslandWater
 
 const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
+const VFXController = preload("res://scripts/environment/stylized/stylized_vfx_controller.gd")
 
 
 static func sample_river_path(control_points: Array, samples_per_segment: int) -> Array[Vector3]:
@@ -58,7 +59,8 @@ static func build_river(
 		var p3 := Vector3(b.x, by, b.z) - right * half
 		MeshLib._add_quad(st, p0, p1, p2, p3, water_color)
 	var mesh: ArrayMesh = st.commit()
-	var instance: MeshInstance3D = mesh_fn.call(parent, mesh, mats.get("water", mats.get("aether")), Vector3.ZERO)
+	var water_mat: Material = mats.get("waterfall", mats.get("water", mats.get("aether")))
+	var instance: MeshInstance3D = mesh_fn.call(parent, mesh, water_mat, Vector3.ZERO)
 	instance.name = "MegaRiver"
 	_build_river_banks(parent, path, width, mats, mesh_fn, quality_level, int(river_spec.get("seed", 3200)))
 	return {"points": path, "mesh": instance}
@@ -140,8 +142,9 @@ static func build_waterfall(
 	var bottom := origin + Vector3(0.0, -height, 0.0)
 	MeshLib._add_quad(st, top + Vector3(-half, 0, 0), top + Vector3(half, 0, 0), bottom + Vector3(half, 0, 0), bottom + Vector3(-half, 0, 0), color)
 	var mesh: ArrayMesh = st.commit()
-	var fall: MeshInstance3D = mesh_fn.call(parent, mesh, mats.get("water", mats.get("aether")), Vector3.ZERO)
+	var fall: MeshInstance3D = mesh_fn.call(parent, mesh, mats.get("waterfall", mats.get("water", mats.get("aether"))), Vector3.ZERO)
 	fall.name = "MegaWaterfall"
+	var mist_nodes: Array = []
 	if quality_level >= 1:
 		var splash := MeshInstance3D.new()
 		splash.name = "MegaWaterfallSplash"
@@ -153,4 +156,5 @@ static func build_waterfall(
 		splash.position = bottom + Vector3(0.0, -0.35, 0.0)
 		splash.scale = Vector3(1.2, 0.45, 1.2)
 		parent.add_child(splash)
-	return {"origin": origin, "bottom": bottom, "mesh": fall}
+		mist_nodes = VFXController.spawn_waterfall_mist(parent, bottom + Vector3(0.0, 0.15, 0.0), mats, mesh_fn, quality_level)
+	return {"origin": origin, "bottom": bottom, "mesh": fall, "mist": mist_nodes}

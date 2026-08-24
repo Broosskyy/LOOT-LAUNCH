@@ -33,9 +33,9 @@ static func apply_palette(
 	mats["wood_light"] = _wood_surface(use_shaders, material_fn, Color("9a5f36"), 0.86, quality_level)
 	mats["brass"] = _metal_surface(use_shaders, material_fn, Color("b88830"), SurfaceLib.MetalFamily.BRASS, quality_level)
 	mats["cannon_dark"] = _metal_surface(use_shaders, material_fn, Color("2c2f3a"), SurfaceLib.MetalFamily.DARK_METAL, quality_level)
-	mats["crystal_violet"] = _crystal_surface(use_shaders, material_fn, Color("9068e0"), Color("6840d0"), Color("5830b8"), 0.34, quality_level)
-	mats["crystal_blue"] = _crystal_surface(use_shaders, material_fn, Color("58b0e0"), Color("3898d0"), Color("2878b8"), 0.28, quality_level)
-	mats["portal"] = _crystal_surface(use_shaders, material_fn, Color("7a48d8"), Color("5830b8"), Color("4828a0"), 0.40, quality_level)
+	mats["crystal_violet"] = _crystal_surface(use_shaders, material_fn, Color("9068e0"), Color("6840d0"), Color("5830b8"), 0.36, quality_level, true)
+	mats["crystal_blue"] = _crystal_surface(use_shaders, material_fn, Color("58b0e0"), Color("3898d0"), Color("2878b8"), 0.30, quality_level, false)
+	mats["portal"] = _crystal_surface(use_shaders, material_fn, Color("7a48d8"), Color("5830b8"), Color("4828a0"), 0.44, quality_level, true)
 	mats["pad_energy"] = StylizedShaderLibrary.standard_surface(
 		material_fn, Color("b868c8"), 0.3, 0.05, Color("c870d8"), 0.46
 	)
@@ -52,13 +52,14 @@ static func apply_palette(
 	mats["leaf_light"] = _leaf_surface(use_shaders, material_fn, Color("68a868"), 0.88, quality_level)
 	mats["trunk"] = _wood_surface(use_shaders, material_fn, Color("7a5230"), 0.92, quality_level)
 	mats["coin"] = _metal_surface(use_shaders, material_fn, Color("d0a030"), SurfaceLib.MetalFamily.BRASS, quality_level)
-	mats["cloud_soft"] = _cloud_surface(use_shaders, material_fn, Color("fafcff"), Color("c8d8ec"), 0.06)
-	mats["cloud_mid"] = _cloud_surface(use_shaders, material_fn, Color("f2f8ff"), Color("bccede"), 0.08)
-	mats["cloud_shadow"] = _cloud_surface(use_shaders, material_fn, Color("e8f2fc"), Color("a8bdd4"), 0.10)
+	mats["cloud_soft"] = _cloud_surface(use_shaders, material_fn, Color("fafcff"), Color("c8d8ec"), 0.06, 0.0)
+	mats["cloud_mid"] = _cloud_surface(use_shaders, material_fn, Color("f2f8ff"), Color("bccede"), 0.08, 0.08)
+	mats["cloud_shadow"] = _cloud_surface(use_shaders, material_fn, Color("e8f2fc"), Color("a8bdd4"), 0.10, 0.0)
+	mats["cloud_far"] = _cloud_surface(use_shaders, material_fn, Color("f6fbff"), Color("d0e4f4"), 0.05, 0.18)
 	mats["distant_grass"] = _grass_surface(use_shaders, material_fn, Color("7a9888"), 0.95, "dark", quality_level)
 	mats["distant_rock"] = _rock_surface(use_shaders, material_fn, Color("98a4b0"), 0.96, SurfaceLib.StoneFamily.CLIFF, quality_level)
 	mats["bouncer"] = StylizedShaderLibrary.standard_surface(
-		material_fn, Color("f0a878"), 0.5, 0.02, Color("e88958"), 0.05
+		material_fn, Color("f0a878"), 0.5, 0.02, Color("e88958"), 0.08 if quality_level >= 2 else 0.05
 	)
 	mats["cheek"] = StylizedShaderLibrary.standard_surface(material_fn, Color("ff96aa"), 0.52, 0.0)
 	# V21 hero aliases
@@ -91,7 +92,8 @@ static func apply_palette(
 	mats["white"] = mats["stone_light"]
 	mats["cannon"] = mats["cannon_dark"]
 	mats["cloud"] = mats["cloud_soft"]
-	mats["water"] = _water_surface(use_shaders, transparent_fn, quality_level)
+	mats["water"] = _water_surface(use_shaders, transparent_fn, quality_level, false)
+	mats["waterfall"] = _water_surface(use_shaders, transparent_fn, quality_level, true)
 
 
 static func _grass_surface(
@@ -151,10 +153,11 @@ static func _crystal_surface(
 	core: Color,
 	emission: Color,
 	energy: float,
-	quality_level: int
+	quality_level: int,
+	hero: bool = false
 ) -> Material:
 	if use_shaders:
-		return StylizedShaderLibrary.crystal_material(base, core, emission, energy, quality_level)
+		return StylizedShaderLibrary.crystal_material(base, core, emission, energy, quality_level, hero)
 	return StylizedShaderLibrary.standard_surface(material_fn, base, 0.24, 0.06, emission, energy)
 
 
@@ -170,14 +173,15 @@ static func _leaf_surface(
 	return StylizedShaderLibrary.standard_surface(material_fn, color, roughness, 0.0)
 
 
-static func _water_surface(use_shaders: bool, transparent_fn: Callable, quality_level: int) -> Material:
+static func _water_surface(use_shaders: bool, transparent_fn: Callable, quality_level: int, waterfall := false) -> Material:
 	if use_shaders:
 		return StylizedShaderLibrary.water_material(
-			Color(0.42, 0.86, 0.98, 0.72),
-			Color(0.22, 0.62, 0.88, 0.82),
-			quality_level
+			Color(0.44, 0.88, 0.99, 0.74) if waterfall else Color(0.42, 0.86, 0.98, 0.72),
+			Color(0.20, 0.58, 0.86, 0.84) if waterfall else Color(0.22, 0.62, 0.88, 0.82),
+			quality_level,
+			waterfall
 		)
-	return transparent_fn.call(Color(0.28, 0.82, 1.0, 0.52)) as Material
+	return transparent_fn.call(Color(0.32, 0.87, 1.0, 0.48) if waterfall else Color(0.28, 0.82, 1.0, 0.52)) as Material
 
 
 static func _cloud_surface(
@@ -185,10 +189,11 @@ static func _cloud_surface(
 	material_fn: Callable,
 	top: Color,
 	bottom: Color,
-	side_shade: float = 0.07
+	side_shade: float = 0.07,
+	depth_fade: float = 0.0
 ) -> Material:
 	if use_shaders:
-		return StylizedShaderLibrary.cloud_material(top, bottom, side_shade)
+		return StylizedShaderLibrary.cloud_material(top, bottom, side_shade, depth_fade)
 	return StylizedShaderLibrary.standard_surface(material_fn, top, 1.0, 0.0)
 
 
@@ -198,7 +203,7 @@ static func validate_palette(mats: Dictionary) -> Array[String]:
 		"grass_main", "grass_light", "grass_dark", "stone_main", "stone_dark", "stone_light",
 		"path_stone", "ruin_stone", "wood", "wood_dark", "brass", "cannon_dark",
 		"leaf_green", "leaf_light", "leaf_dark", "portal_energy", "pad_energy",
-		"crystal_violet", "crystal_blue", "cloud", "cloud_shadow", "distant_grass", "distant_rock", "water",
+		"crystal_violet", "crystal_blue", "cloud", "cloud_shadow", "cloud_far", "distant_grass", "distant_rock", "water", "waterfall",
 	]
 	for key in required:
 		if not mats.has(key):
