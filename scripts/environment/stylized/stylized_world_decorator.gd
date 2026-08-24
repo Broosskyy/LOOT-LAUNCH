@@ -8,6 +8,8 @@ const StylizedCrystalGenerator = preload("res://scripts/environment/stylized/sty
 const StylizedPortalGenerator = preload("res://scripts/environment/stylized/stylized_portal_generator.gd")
 const StylizedStartComposition = preload("res://scripts/environment/stylized/stylized_start_composition.gd")
 const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
+const ArchGen = preload("res://scripts/environment/stylized/stylized_architecture_generator.gd")
+const LandmarkGen = preload("res://scripts/environment/stylized/stylized_landmark_generator.gd")
 const StylizedTypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const MeshLib = preload("res://scripts/environment/stylized/stylized_mesh_library.gd")
 
@@ -23,7 +25,8 @@ static func decorate_start_island(
 	animated_nodes: Array = []
 ) -> void:
 	StylizedGroundRuinsKit.place_path_stones(parent, StylizedStartComposition.PATH_STONES, mats, mesh_fn, 1200)
-	StylizedGroundRuinsKit.add_corner_ruin(parent, StylizedStartComposition.CORNER_RUIN_POS, -18.0, mats, mesh_fn, 2201)
+	ArchGen.build_wall(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(-0.4, 0.0, 0.2), -18.0, 2.2, 0.95, ArchGen.WallKind.BROKEN_WALL, ArchGen.DamageLevel.LIGHT_RUIN, 2200, mats, mesh_fn, quality_level)
+	StylizedGroundRuinsKit.add_arch_fragment(parent, StylizedStartComposition.CORNER_RUIN_POS + Vector3(0.6, 0.0, -0.3), -18.0, mats, mesh_fn, 2201)
 	StylizedGroundRuinsKit.add_pillar(parent, StylizedStartComposition.PILLAR_POS, 14.0, mats, mesh_fn, true, 2402)
 	StylizedGroundRuinsKit.add_plinth(parent, StylizedStartComposition.PLINTH_POS, 8.0, mats, mesh_fn, 2503)
 	StylizedGroundRuinsKit.add_rubble_cluster(parent, Vector3(-4.6, 0.0, 1.2), mats, mesh_fn, 2604, 4)
@@ -47,7 +50,7 @@ static func decorate_hero_midground(
 	island_radius: float = 9.6
 ) -> void:
 	StylizedGroundRuinsKit.add_stair_segment(parent, Vector3(0.0, 0.0, 4.2), 8.0, mats, mesh_fn, 4, 3301)
-	StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(3.4, 0.0, 4.6), -12.0, mats, mesh_fn, 4101)
+	LandmarkGen.build_lookout_ruin(parent, Vector3(4.8, 0.0, 3.2), -32.0, 3302, mats, mesh_fn, quality_level)
 	var portal_root: Node3D = Node3D.new()
 	portal_root.position = Vector3(0.2, 0.0, 4.0)
 	portal_root.rotation_degrees.y = 6.0
@@ -60,16 +63,7 @@ static func decorate_hero_midground(
 
 
 static func decorate_hero_landmark(parent: Node3D, mats: Dictionary, mesh_fn: Callable, quality_level: int = 2) -> void:
-	# Distant ruin gate silhouette — tower + broken parapet + banner mast.
-	mesh_fn.call(parent, MeshLib.tapered_cylinder(0.42, 0.62, 2.4, 6, 8800), StylizedGroundRuinsKit._stone_material(mats, "dark"), Vector3(-0.4, 0, 0.2))
-	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(1.1, 0.22, 0.9), 0.06, 8801, 0.78), StylizedGroundRuinsKit._stone_material(mats, "main"), Vector3(-0.4, 2.4, 0.2))
-	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(0.72, 0.38, 0.48), 0.05, 8802, 0.82), StylizedGroundRuinsKit._stone_material(mats, "warm"), Vector3(0.35, 1.2, -0.15), Vector3.ONE, Vector3(0, 24, 0))
-	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(0.18, 0.14, 0.18), 0.03, 8803, 0.74), StylizedGroundRuinsKit._stone_material(mats, "dark"), Vector3(0.55, 2.55, -0.1))
-	mesh_fn.call(parent, MeshLib.tapered_trunk(1.85, 0.04, 0.03, 8804, 5), StylizedTypedAccess.material(mats, "wood_dark", "wood_dark"), Vector3(0.2, 0, -0.35), Vector3.ONE, Vector3(0, 12, 0))
-	mesh_fn.call(parent, MeshLib.beveled_box(Vector3(0.42, 0.28, 0.04), 0.02, 8805, 0.7), StylizedTypedAccess.material(mats, "flower_violet", "flower_violet"), Vector3(0.2, 1.72, -0.35), Vector3.ONE, Vector3(0, 12, -8))
-	StylizedGroundRuinsKit.add_pillar(parent, Vector3(0.0, 0.0, 0.0), 0.0, mats, mesh_fn, true, 8806)
-	StylizedGroundRuinsKit.add_wall_segment(parent, Vector3(-1.4, 0.0, 0.6), 12.0, mats, mesh_fn, true, 8807)
-	StylizedGroundRuinsKit.add_arch_fragment(parent, Vector3(0.8, 0.0, -0.4), -8.0, mats, mesh_fn, 8808)
+	LandmarkGen.build_hero_landmark(parent, mats, mesh_fn, quality_level, 8800)
 	StylizedVegetationGenerator.dress_hero_landmark_vegetation(parent, mats, mesh_fn, quality_level)
 
 

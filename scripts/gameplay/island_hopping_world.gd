@@ -70,6 +70,7 @@ const StylizedMotionController = preload("res://scripts/environment/stylized/sty
 const StylizedVFXController = preload("res://scripts/environment/stylized/stylized_vfx_controller.gd")
 const StylizedMegaIslandComposer = preload("res://scripts/environment/stylized/stylized_mega_island_composer.gd")
 const MegaIslandCollision = preload("res://scripts/environment/stylized/mega_island_collision.gd")
+const StylizedArchitectureGenerator = preload("res://scripts/environment/stylized/stylized_architecture_generator.gd")
 
 var session: Dictionary = {}
 var expedition_key := "wolkengarten"
@@ -1021,7 +1022,9 @@ func _add_floating_island(center: Vector3, radius: float, thickness: float, play
 			quality_level,
 			int(session.get("seed", 7331)) + shot_number * 97,
 			route_variant,
-			false
+			false,
+			Callable(self, "_transparent_material"),
+			wind_streamers
 		)
 	elif _uses_stylized_v18():
 		StylizedIslandGenerator.build(root, radius, thickness, playable, island_index, mats, quality_level, route_variant, Callable(self, "_mesh"))
@@ -1143,7 +1146,8 @@ func _add_biome_landmark(center: Vector3, island_index: int) -> void:
 			_add_airship_dock(root, Vector3(-6.8, 0.0, 3.8))
 			_add_banner(root, Vector3(6.5, 0.0, 4.0), Color("ffc94f"))
 		5:
-			_add_treasure_fortress(root, Vector3(0.0, 0.0, 5.6))
+			if not (_uses_stylized_v18() and StylizedMegaIslandComposer.is_mega_island_index(5)):
+				_add_treasure_fortress(root, Vector3(0.0, 0.0, 5.6))
 			_add_banner(root, Vector3(-8.2, 0.0, 2.2), Color("ef5f70"))
 
 
@@ -1225,6 +1229,17 @@ func _add_mushroom_grove(parent: Node3D, pos: Vector3) -> void:
 
 
 func _add_small_bridge(parent: Node3D, pos: Vector3) -> void:
+	if _uses_stylized_v18():
+		StylizedArchitectureGenerator.build_stone_bridge(
+			parent,
+			pos + Vector3(-2.4, 0.12, -0.9),
+			pos + Vector3(2.4, 0.28, 0.9),
+			5100,
+			mats,
+			Callable(self, "_mesh"),
+			quality_level
+		)
+		return
 	var bridge := Node3D.new(); bridge.position = pos; bridge.rotation_degrees.y = 18.0; parent.add_child(bridge)
 	for i in range(6):
 		_mesh(bridge, _box(Vector3(0.92, 0.13, 1.8)), mats.wood, Vector3((i - 2.5) * 0.82, 0.25 + sin(float(i) / 5.0 * PI) * 0.34, 0))
@@ -1419,6 +1434,10 @@ func _add_arch(pos: Vector3, island_index: int) -> void:
 	root.name = "SideArch%02d" % (island_index + 1)
 	root.position = pos
 	add_child(root)
+	if _uses_stylized_v18():
+		StylizedArchitectureGenerator.build_side_arch(root, Vector3.ZERO, 0.0, 5200 + island_index, mats, Callable(self, "_mesh"), quality_level)
+		_add_crystal_cluster(root, Vector3(0.0, 2.0, 0.0), 0.7)
+		return
 	for x in [-1.6, 1.6]:
 		_mesh(root, _box(Vector3(0.55, 3.2, 0.7)), mats.rock, Vector3(x, 1.6, 0.0))
 	_mesh(root, _box(Vector3(3.8, 0.55, 0.7)), mats.brass, Vector3(0.0, 3.15, 0.0))

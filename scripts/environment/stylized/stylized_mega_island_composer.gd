@@ -10,6 +10,8 @@ const RuinsKit = preload("res://scripts/environment/stylized/stylized_ground_rui
 const VegGen = preload("res://scripts/environment/stylized/stylized_vegetation_generator.gd")
 const TypedAccess = preload("res://scripts/environment/stylized/stylized_typed_access.gd")
 const TerrainSurface = preload("res://scripts/environment/stylized/stylized_terrain_surface.gd")
+const ArchGen = preload("res://scripts/environment/stylized/stylized_architecture_generator.gd")
+const LandmarkGen = preload("res://scripts/environment/stylized/stylized_landmark_generator.gd")
 
 const MEGA_ISLAND_INDEX := 5
 const DEBUG_VIEW_META := "mega_island_debug_view"
@@ -26,7 +28,9 @@ static func compose(
 	mesh_fn: Callable,
 	quality_level: int,
 	route_variant: int = 0,
-	debug_view: bool = false
+	debug_view: bool = false,
+	transparent_fn: Callable = Callable(),
+	animated_nodes: Array = []
 ) -> Dictionary:
 	var seed: int = int(recipe.get("seed", 3200))
 	var rng := _rng(seed, route_variant)
@@ -48,8 +52,10 @@ static func compose(
 	river_spec["seed"] = seed
 	var river_result: Dictionary = Water.build_river(water_root, river_spec, mats, mesh_fn, quality_level)
 	var waterfall_result: Dictionary = Water.build_waterfall(water_root, recipe.get("waterfall", {}), mats, mesh_fn, quality_level)
-	_build_bridge(decor_root, recipe.get("bridge", {}), mats, mesh_fn)
-	_build_landmark(decor_root, recipe, mats, mesh_fn, quality_level)
+	_build_bridge(decor_root, recipe.get("bridge", {}), mats, mesh_fn, quality_level)
+	var arch_meta: Dictionary = LandmarkGen.build_mega_architecture_cluster(
+		decor_root, recipe, mats, mesh_fn, transparent_fn, animated_nodes, quality_level, seed
+	)
 	_dress_vegetation(decor_root, recipe, mats, mesh_fn, quality_level, seed)
 	var surface_meta: Dictionary = TerrainSurface.dress_mega_island(
 		terrain_root, water_root, modules, recipe, mats, mesh_fn, quality_level, seed
@@ -79,6 +85,7 @@ static func compose(
 		"connected": modules.size() >= 2,
 		"surface_dressed": true,
 		"surface_river_points": surface_meta.get("river_points", []),
+		"architecture": arch_meta,
 	}
 
 
@@ -89,11 +96,13 @@ static func compose_playable_showcase(
 	quality_level: int,
 	world_seed: int,
 	route_variant: int = 0,
-	debug_view: bool = false
+	debug_view: bool = false,
+	transparent_fn: Callable = Callable(),
+	animated_nodes: Array = []
 ) -> Dictionary:
 	var recipe_seed: int = 32007 + world_seed * 131 + route_variant * 17
 	var recipe: Dictionary = Recipes.recipe_for(Types.RecipeId.RIVER_TERRACE_A, recipe_seed)
-	return compose(root, recipe, mats, mesh_fn, quality_level, route_variant, debug_view)
+	return compose(root, recipe, mats, mesh_fn, quality_level, route_variant, debug_view, transparent_fn, animated_nodes)
 
 
 static func zone_of_type(zones: Array, zone_type: int) -> Array:
@@ -240,23 +249,10 @@ static func _build_unified_cliff_shell(
 	shell.name = "MegaCliffShell"
 
 
-static func _build_bridge(parent: Node3D, bridge_spec: Dictionary, mats: Dictionary, mesh_fn: Callable) -> void:
+static func _build_bridge(parent: Node3D, bridge_spec: Dictionary, mats: Dictionary, mesh_fn: Callable, quality_level: int) -> void:
 	if not bridge_spec.has("start") or not bridge_spec.has("end"):
 		return
-	var start: Vector3 = bridge_spec["start"]
-	var end: Vector3 = bridge_spec["end"]
-	var mid := (start + end) * 0.5
-	var delta := end - start
-	var length: float = Vector2(delta.x, delta.z).length()
-	if length < 0.2:
-		return
-	var yaw := rad_to_deg(atan2(delta.x, delta.z))
-	var deck := MeshLib.beveled_box(Vector3(1.4, 0.22, length + 0.6), 0.08, 1203, 0.88)
-	mesh_fn.call(parent, deck, TypedAccess.material(mats, "path_stone", "stone_light"), mid + Vector3(0.0, 0.18, 0.0), Vector3.ONE, Vector3(0.0, yaw, 0.0))
-	for side in [-0.55, 0.55]:
-		var rail := MeshLib.beveled_box(Vector3(0.12, 0.42, length), 0.03, 1204, 0.8)
-		var offset := Vector3(side, 0.42, 0.0).rotated(Vector3.UP, deg_to_rad(yaw))
-		mesh_fn.call(parent, rail, TypedAccess.material(mats, "ruin_stone", "stone_dark"), mid + offset + Vector3(0.0, 0.18, 0.0))
+	ArchGen.build_stone_bridge(parent, bridge_spec["start"], bridge_spec["end"], 1203, mats, mesh_fn, quality_level)
 
 
 static func _build_landmark(
@@ -266,15 +262,7 @@ static func _build_landmark(
 	mesh_fn: Callable,
 	quality_level: int
 ) -> void:
-	var landmarks: Array = zone_of_type(recipe.get("zones", []), Types.ZoneType.LANDMARK_ZONE)
-	if landmarks.is_empty():
-		return
-	var zone: Dictionary = landmarks[0]
-	var center: Vector3 = zone.get("center", Vector3.ZERO)
-	RuinsKit.add_corner_ruin(parent, center + Vector3(-1.2, 0.0, -0.8), -18.0, mats, mesh_fn, 3205)
-	RuinsKit.add_pillar(parent, center + Vector3(1.0, 0.0, 0.6), 14.0, mats, mesh_fn, true, 3206)
-	if quality_level >= 1:
-		RuinsKit.add_arch_fragment(parent, center + Vector3(0.0, 0.0, 1.4), -8.0, mats, mesh_fn, 3207)
+	pass # V35 architecture cluster replaces standalone landmark placement.
 
 
 static func _dress_vegetation(

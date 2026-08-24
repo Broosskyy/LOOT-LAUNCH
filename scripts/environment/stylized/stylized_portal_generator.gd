@@ -2,6 +2,7 @@ extends RefCounted
 class_name StylizedPortalGenerator
 
 const StylizedHeroModels = preload("res://scripts/environment/stylized/stylized_hero_models.gd")
+const LandmarkGen = preload("res://scripts/environment/stylized/stylized_landmark_generator.gd")
 
 
 static func build_portal(
@@ -22,4 +23,4 @@ static func build_monument(
 	animated_nodes: Array,
 	scale_value: float
 ) -> Node3D:
-	return StylizedHeroModels.build_portal_monument(parent, mats, mesh_fn, transparent_fn, animated_nodes, scale_value)
+	return LandmarkGen.build_portal_monument_site(parent, mats, mesh_fn, transparent_fn, animated_nodes, scale_value, 4100, 2)
